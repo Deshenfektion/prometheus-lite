@@ -1,5 +1,7 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { query } from './db/pool.js';
+import { apiRoutes } from './routes/index.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export function createApp(): Express {
   const app = express();
@@ -22,6 +24,11 @@ export function createApp(): Express {
       uptimeSeconds: Math.round(process.uptime()),
     });
   });
+
+  app.use('/api/v1', apiRoutes);
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
