@@ -1,7 +1,9 @@
 import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
+import { findUpward } from '../lib/paths.js';
 
-loadDotenv();
+const envFile = findUpward('.env');
+loadDotenv(envFile === undefined ? {} : { path: envFile });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

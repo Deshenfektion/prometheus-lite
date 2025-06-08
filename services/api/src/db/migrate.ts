@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
+import { findUpward } from '../lib/paths.js';
 import { logger } from '../lib/logger.js';
 import { closePool, pool, withTransaction } from './pool.js';
 
@@ -14,16 +13,11 @@ export function resolveMigrationsDir(): string {
     return resolve(fromEnv);
   }
 
-  let current = dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 8; depth += 1) {
-    const candidate = join(current, 'db', 'migrations');
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-    current = dirname(current);
+  const discovered = findUpward(join('db', 'migrations'));
+  if (discovered === undefined) {
+    throw new Error('Unable to locate db/migrations; set MIGRATIONS_DIR');
   }
-
-  throw new Error('Unable to locate db/migrations; set MIGRATIONS_DIR');
+  return discovered;
 }
 
 async function ensureMigrationsTable(): Promise<void> {
