@@ -1,0 +1,24 @@
+targets:
+  - slug: checkout-api
+    display_name: Checkout API
+    base_url: http://localhost:8081
+    health_path: /health
+    environment: production
+    interval_seconds: 10
+    timeout_ms: 2000
+
+  - slug: search-api
+    display_name: Search API
+    base_url: http://localhost:8082
+    health_path: /health
+    environment: production
+    interval_seconds: 15
+    timeout_ms: 3000
+
+  - slug: billing-worker
+    display_name: Billing Worker
+    base_url: http://localhost:8083
+    health_path: /health
+    environment: staging
+    interval_seconds: 30
+    timeout_ms: 5000

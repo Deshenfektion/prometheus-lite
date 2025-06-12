@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "prometheus-lite-collector"
+version = "0.1.0"
+description = "Polls monitored services and ships metric snapshots to the prometheus-lite ingestion API"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+dependencies = [
+    "httpx==0.28.1",
+    "pydantic==2.10.5",
+    "pydantic-settings==2.7.1",
+    "psutil==6.1.1",
+    "pyyaml==6.0.2",
+    "structlog==25.1.0",
+    "tenacity==9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy==1.14.1",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.2",
+    "respx==0.22.0",
+    "ruff==0.9.2",
+    "types-psutil==6.1.0.20241221",
+    "types-pyyaml==6.0.12.20241230",
+]
+
+[project.scripts]
+prometheus-lite-collector = "collector.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/collector"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "ASYNC", "RUF"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["src", "tests"]

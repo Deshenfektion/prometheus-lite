@@ -27,3 +27,4 @@ npm-debug.log*
 
 data/postgres/
 services/collector/.buffer/
+services/collector/collector.yaml
