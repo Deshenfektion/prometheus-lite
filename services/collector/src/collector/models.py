@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -40,9 +42,15 @@ class SnapshotBatch(WireModel):
     snapshots: list[MetricSnapshot]
 
 
-class ProbeOutcome(WireModel):
+@dataclass(frozen=True, slots=True)
+class ProbeOutcome:
     service: str
     reachable: bool
     status_code: int | None
     latency_ms: float
+    payload: Mapping[str, Any] | None = None
     error: str | None = None
+
+    @property
+    def healthy(self) -> bool:
+        return self.reachable and self.status_code is not None and 200 <= self.status_code < 400
