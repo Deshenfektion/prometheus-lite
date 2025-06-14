@@ -1,15 +1,47 @@
 from __future__ import annotations
 
+import asyncio
 import sys
 
-from collector.config import CollectorSettings, load_targets
+import httpx
+
+from collector.collectors import HttpProbe
+from collector.config import CollectorSettings, TargetConfig, load_targets
 from collector.logging_setup import configure_logging, get_logger
+from collector.models import MetricSnapshot
+from collector.scheduler import PollScheduler
+
+log = get_logger("collector")
+
+
+async def _log_snapshot(snapshot: MetricSnapshot) -> None:
+    log.info(
+        "snapshot",
+        service=snapshot.service,
+        recorded_at=snapshot.recorded_at.isoformat(),
+        metrics=snapshot.metrics,
+    )
+
+
+async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
+    limits = httpx.Limits(max_connections=64, max_keepalive_connections=32)
+    async with httpx.AsyncClient(
+        limits=limits,
+        timeout=settings.request_timeout_seconds,
+        follow_redirects=False,
+        headers={"user-agent": f"prometheus-lite-collector/{settings.name}"},
+    ) as client:
+        scheduler = PollScheduler(
+            targets=targets,
+            collect=HttpProbe(client).collect,
+            sink=_log_snapshot,
+        )
+        await scheduler.run()
 
 
 def main() -> int:
     settings = CollectorSettings()
     configure_logging(settings.log_level, settings.log_json)
-    log = get_logger("collector")
 
     try:
         targets = load_targets(settings.config_file)
@@ -23,8 +55,11 @@ def main() -> int:
         api=settings.api_base_url,
         targets=len(targets),
     )
-    for target in targets:
-        log.info("target_registered", slug=target.slug, url=target.probe_url)
+
+    try:
+        asyncio.run(run(settings, targets))
+    except KeyboardInterrupt:
+        log.info("collector_stopped")
 
     return 0
 
