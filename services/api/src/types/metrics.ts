@@ -36,5 +36,6 @@ export interface RejectedSnapshot {
 export interface IngestOutcome {
   acceptedSnapshots: number;
   acceptedPoints: number;
+  storedPoints: number;
   rejected: RejectedSnapshot[];
 }

@@ -1,4 +1,5 @@
 import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
+import { SnapshotRepository, snapshotRepository } from '../repositories/snapshotRepository.js';
 import { MetricCatalog, metricCatalog } from './metricCatalog.js';
 import { TimestampError, normalizeTimestamp } from '../lib/time.js';
 import { logger } from '../lib/logger.js';
@@ -13,13 +14,16 @@ export const MAX_SNAPSHOTS_PER_BATCH = 500;
 
 export class IngestionService {
   private readonly services: ServiceRepository;
+  private readonly snapshots: SnapshotRepository;
   private readonly catalog: MetricCatalog;
 
   constructor(
     services: ServiceRepository = serviceRepository,
+    snapshots: SnapshotRepository = snapshotRepository,
     catalog: MetricCatalog = metricCatalog,
   ) {
     this.services = services;
+    this.snapshots = snapshots;
     this.catalog = catalog;
   }
 
@@ -83,14 +87,22 @@ export class IngestionService {
       acceptedSnapshots += 1;
     }
 
+    const written = await this.snapshots.insertMany(points);
+
     logger.debug(
-      { collector: batch.collector, points: points.length, rejected: rejected.length },
+      {
+        collector: batch.collector,
+        points: points.length,
+        written,
+        rejected: rejected.length,
+      },
       'ingest batch processed',
     );
 
     return {
       acceptedSnapshots,
       acceptedPoints: points.length,
+      storedPoints: written,
       rejected,
     };
   }
