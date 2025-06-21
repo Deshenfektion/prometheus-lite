@@ -37,6 +37,10 @@ class CollectorSettings(BaseSettings):
     config_file: Path = Path("collector.yaml")
     default_interval_seconds: float = Field(default=15.0, gt=0)
     request_timeout_seconds: float = Field(default=5.0, gt=0)
+    batch_max_size: int = Field(default=200, ge=1, le=500)
+    batch_max_wait_seconds: float = Field(default=2.0, gt=0)
+    queue_max_size: int = Field(default=10_000, ge=100)
+    send_max_attempts: int = Field(default=4, ge=1, le=10)
     log_level: str = "info"
     log_json: bool = False
 

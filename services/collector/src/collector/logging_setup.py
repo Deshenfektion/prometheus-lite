@@ -13,6 +13,9 @@ def configure_logging(level: str = "info", json_output: bool = False) -> None:
         level=getattr(logging, level.upper(), logging.INFO),
     )
 
+    for noisy in ("httpx", "httpcore", "hpack"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
     renderer: structlog.types.Processor = (
         structlog.processors.JSONRenderer()
         if json_output
