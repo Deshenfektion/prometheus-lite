@@ -4,11 +4,11 @@ import asyncio
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 
 from collector.config import TargetConfig
 from collector.logging_setup import get_logger
 from collector.models import MetricSnapshot
+from collector.timeutil import utc_now
 
 log = get_logger("scheduler")
 
@@ -37,6 +37,7 @@ class PollScheduler:
     async def poll_once(self, target: TargetConfig) -> MetricSnapshot | None:
         state = self.state[target.slug]
         state.polls += 1
+        started_at = utc_now()
         try:
             metrics = await self.collect(target)
         except Exception as error:
@@ -52,7 +53,7 @@ class PollScheduler:
         state.consecutive_failures = 0
         snapshot = MetricSnapshot(
             service=target.slug,
-            recorded_at=datetime.now(UTC),
+            recorded_at=started_at,
             metrics=metrics,
         )
         await self.sink(snapshot)

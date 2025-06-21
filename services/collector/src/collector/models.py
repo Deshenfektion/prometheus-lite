@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from collector.timeutil import normalize
 
 MetricKey = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{1,62}$")]
 
@@ -32,9 +34,7 @@ class MetricSnapshot(WireModel):
     @field_validator("recorded_at")
     @classmethod
     def ensure_utc(cls, value: datetime) -> datetime:
-        if value.tzinfo is None:
-            return value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
+        return normalize(value)
 
 
 class SnapshotBatch(WireModel):
