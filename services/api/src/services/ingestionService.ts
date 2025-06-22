@@ -1,6 +1,7 @@
 import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
 import { SnapshotRepository, snapshotRepository } from '../repositories/snapshotRepository.js';
 import { MetricCatalog, metricCatalog } from './metricCatalog.js';
+import { validateMetricValue } from './metricValidation.js';
 import { TimestampError, normalizeTimestamp } from '../lib/time.js';
 import { logger } from '../lib/logger.js';
 import type {
@@ -55,14 +56,21 @@ export class IngestionService {
       }
 
       const snapshotPoints: MetricPoint[] = [];
-      const unknownKeys: string[] = [];
+      const problems: string[] = [];
 
       for (const [key, value] of Object.entries(snapshot.metrics)) {
         const definition = await this.catalog.resolveKey(key);
         if (definition === undefined) {
-          unknownKeys.push(key);
+          problems.push(`unknown metric '${key}'`);
           continue;
         }
+
+        const problem = validateMetricValue(definition, value);
+        if (problem !== undefined) {
+          problems.push(problem);
+          continue;
+        }
+
         snapshotPoints.push({
           serviceId,
           metricId: definition.id,
@@ -71,11 +79,11 @@ export class IngestionService {
         });
       }
 
-      if (unknownKeys.length > 0) {
+      if (problems.length > 0) {
         rejected.push({
           index,
           service: snapshot.service,
-          reason: `unknown metric keys: ${unknownKeys.join(', ')}`,
+          reason: problems.join('; '),
         });
       }
 

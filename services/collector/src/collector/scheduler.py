@@ -9,6 +9,7 @@ from collector.config import TargetConfig
 from collector.logging_setup import get_logger
 from collector.models import MetricSnapshot
 from collector.timeutil import utc_now
+from collector.validators import validate_metrics
 
 log = get_logger("scheduler")
 
@@ -51,10 +52,15 @@ class PollScheduler:
             return None
 
         state.consecutive_failures = 0
+        accepted = validate_metrics(target.slug, metrics)
+        if not accepted:
+            log.warning("snapshot_empty_after_validation", slug=target.slug)
+            return None
+
         snapshot = MetricSnapshot(
             service=target.slug,
             recorded_at=started_at,
-            metrics=metrics,
+            metrics=accepted,
         )
         await self.sink(snapshot)
         return snapshot
