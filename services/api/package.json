@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "migrate": "tsx src/db/migrate.ts"
+    "migrate": "tsx src/db/migrate.ts",
+    "benchmark": "tsx src/scripts/benchmarkIngest.ts"
   },
   "dependencies": {
     "dotenv": "16.4.7",

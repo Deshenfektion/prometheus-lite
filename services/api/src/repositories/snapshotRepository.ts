@@ -1,12 +1,27 @@
 import type { Queryable } from '../db/queryable.js';
-import { pool, withTransaction } from '../db/pool.js';
+import { pool } from '../db/pool.js';
 import type { MetricPoint } from '../types/metrics.js';
 
-const INSERT_POINT = `
+export const INSERT_CHUNK_SIZE = 5_000;
+
+const INSERT_CHUNK = `
   INSERT INTO metric_snapshots (service_id, metric_id, recorded_at, value)
-  VALUES ($1, $2, $3, $4)
+  SELECT * FROM UNNEST(
+    $1::bigint[],
+    $2::smallint[],
+    $3::timestamptz[],
+    $4::double precision[]
+  )
   ON CONFLICT (service_id, metric_id, recorded_at) DO NOTHING
 `;
+
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
 
 export class SnapshotRepository {
   private readonly db: Queryable;
@@ -20,19 +35,32 @@ export class SnapshotRepository {
       return 0;
     }
 
-    return withTransaction(async (client) => {
-      let written = 0;
-      for (const point of points) {
-        const result = await client.query(INSERT_POINT, [
-          point.serviceId,
-          point.metricId,
-          point.recordedAt,
-          point.value,
-        ]);
-        written += result.rowCount ?? 0;
+    let written = 0;
+
+    for (const batch of chunk(points, INSERT_CHUNK_SIZE)) {
+      const serviceIds = new Array<number>(batch.length);
+      const metricIds = new Array<number>(batch.length);
+      const timestamps = new Array<Date>(batch.length);
+      const values = new Array<number>(batch.length);
+
+      for (let index = 0; index < batch.length; index += 1) {
+        const point = batch[index] as MetricPoint;
+        serviceIds[index] = point.serviceId;
+        metricIds[index] = point.metricId;
+        timestamps[index] = point.recordedAt;
+        values[index] = point.value;
       }
-      return written;
-    });
+
+      const result = await this.db.query(INSERT_CHUNK, [
+        serviceIds,
+        metricIds,
+        timestamps,
+        values,
+      ]);
+      written += result.rowCount ?? 0;
+    }
+
+    return written;
   }
 
   async countForService(serviceId: number): Promise<number> {
