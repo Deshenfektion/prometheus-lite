@@ -1,6 +1,7 @@
 import type { Queryable } from '../db/queryable.js';
 import { pool } from '../db/pool.js';
 import type { MetricPoint } from '../types/metrics.js';
+import type { HistoryRequest, HistoryRow, LatestValue } from '../types/query.js';
 
 export const INSERT_CHUNK_SIZE = 5_000;
 
@@ -61,6 +62,53 @@ export class SnapshotRepository {
     }
 
     return written;
+  }
+
+  async latestValues(serviceIds: readonly number[]): Promise<LatestValue[]> {
+    if (serviceIds.length === 0) {
+      return [];
+    }
+
+    const result = await this.db.query<{
+      service_id: number;
+      metric_id: number;
+      recorded_at: Date;
+      value: number;
+    }>(
+      `SELECT DISTINCT ON (service_id, metric_id)
+              service_id, metric_id, recorded_at, value
+         FROM metric_snapshots
+        WHERE service_id = ANY($1::bigint[])
+        ORDER BY service_id, metric_id, recorded_at DESC`,
+      [serviceIds],
+    );
+
+    return result.rows.map((row) => ({
+      serviceId: row.service_id,
+      metricId: row.metric_id,
+      recordedAt: row.recorded_at.toISOString(),
+      value: row.value,
+    }));
+  }
+
+  async history(request: HistoryRequest): Promise<HistoryRow[]> {
+    const result = await this.db.query<{ metric_id: number; recorded_at: Date; value: number }>(
+      `SELECT metric_id, recorded_at, value
+         FROM metric_snapshots
+        WHERE service_id = $1
+          AND metric_id = ANY($2::smallint[])
+          AND recorded_at >= $3
+          AND recorded_at < $4
+        ORDER BY metric_id ASC, recorded_at ASC
+        LIMIT $5`,
+      [request.serviceId, request.metricIds, request.from, request.to, request.limit],
+    );
+
+    return result.rows.map((row) => ({
+      metricId: row.metric_id,
+      recordedAt: row.recorded_at.toISOString(),
+      value: row.value,
+    }));
   }
 
   async countForService(serviceId: number): Promise<number> {
