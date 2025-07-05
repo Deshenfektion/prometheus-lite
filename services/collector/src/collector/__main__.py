@@ -5,7 +5,8 @@ import sys
 
 import httpx
 
-from collector.collectors import HttpProbe
+from collector.aggregation import WindowRegistry
+from collector.collectors import HttpProbe, MetricsAssembler
 from collector.config import CollectorSettings, TargetConfig, load_targets
 from collector.logging_setup import configure_logging, get_logger
 from collector.scheduler import PollScheduler
@@ -31,9 +32,16 @@ async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
             max_queue_size=settings.queue_max_size,
             max_attempts=settings.send_max_attempts,
         )
+        assembler = MetricsAssembler(
+            probe=HttpProbe(client),
+            windows=WindowRegistry(
+                max_samples=settings.window_max_samples,
+                max_age_seconds=settings.window_max_age_seconds,
+            ),
+        )
         scheduler = PollScheduler(
             targets=targets,
-            collect=HttpProbe(client).collect,
+            collect=assembler.collect,
             sink=shipper.submit,
         )
 
