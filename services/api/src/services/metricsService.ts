@@ -2,8 +2,14 @@ import { SnapshotRepository, snapshotRepository } from '../repositories/snapshot
 import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
 import { MetricCatalog, metricCatalog } from './metricCatalog.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
+import { chooseStep, snapStep } from '../lib/buckets.js';
 import type { MetricDefinition } from '../types/metrics.js';
-import type { MetricSeries, SeriesPoint } from '../types/query.js';
+import type {
+  AggregateRequest,
+  HistoryRequest,
+  MetricSeries,
+  SeriesPoint,
+} from '../types/query.js';
 
 export const MAX_WINDOW_SECONDS = 7 * 24 * 3600;
 export const MAX_POINTS = 5_000;
@@ -15,6 +21,7 @@ export interface HistoryOptions {
   from?: Date;
   to?: Date;
   limit?: number;
+  stepSeconds?: number;
 }
 
 export interface LatestSnapshot {
@@ -114,29 +121,61 @@ export class MetricsService {
     }
 
     const definitions = await this.resolveMetrics(options.metricKeys);
+    const metricIds = definitions.map((definition) => definition.id);
     const limit = Math.min(options.limit ?? MAX_POINTS, MAX_POINTS);
+    const windowSeconds = (to.getTime() - from.getTime()) / 1000;
+    const pointBudget = Math.max(Math.floor(limit / Math.max(definitions.length, 1)), 1);
 
-    const rows = await this.snapshots.history({
-      serviceId: service.id,
-      metricIds: definitions.map((definition) => definition.id),
-      from,
-      to,
-      limit,
-    });
+    const stepSeconds =
+      options.stepSeconds === undefined
+        ? chooseStep(windowSeconds, pointBudget)
+        : snapStep(options.stepSeconds);
 
-    const pointsByMetric = new Map<number, SeriesPoint[]>();
-    for (const row of rows) {
-      const points = pointsByMetric.get(row.metricId) ?? [];
-      points.push({ recordedAt: row.recordedAt, value: row.value });
-      pointsByMetric.set(row.metricId, points);
-    }
+    const request = { serviceId: service.id, metricIds, from, to, limit };
+    const pointsByMetric =
+      stepSeconds === null
+        ? await this.rawPoints(request)
+        : await this.bucketedPoints({ ...request, stepSeconds });
 
     return definitions.map((definition) => ({
       service: service.slug,
       metric: definition.key,
       unit: definition.unit,
+      stepSeconds,
       points: pointsByMetric.get(definition.id) ?? [],
     }));
+  }
+
+  private async rawPoints(request: HistoryRequest): Promise<Map<number, SeriesPoint[]>> {
+    const rows = await this.snapshots.history(request);
+    const grouped = new Map<number, SeriesPoint[]>();
+
+    for (const row of rows) {
+      const points = grouped.get(row.metricId) ?? [];
+      points.push({ recordedAt: row.recordedAt, value: row.value });
+      grouped.set(row.metricId, points);
+    }
+
+    return grouped;
+  }
+
+  private async bucketedPoints(request: AggregateRequest): Promise<Map<number, SeriesPoint[]>> {
+    const rows = await this.snapshots.aggregate(request);
+    const grouped = new Map<number, SeriesPoint[]>();
+
+    for (const row of rows) {
+      const points = grouped.get(row.metricId) ?? [];
+      points.push({
+        recordedAt: row.bucketStart,
+        value: row.average,
+        min: row.minimum,
+        max: row.maximum,
+        samples: row.samples,
+      });
+      grouped.set(row.metricId, points);
+    }
+
+    return grouped;
   }
 }
 

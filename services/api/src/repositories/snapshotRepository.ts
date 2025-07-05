@@ -1,7 +1,13 @@
 import type { Queryable } from '../db/queryable.js';
 import { pool } from '../db/pool.js';
 import type { MetricPoint } from '../types/metrics.js';
-import type { HistoryRequest, HistoryRow, LatestValue } from '../types/query.js';
+import type {
+  AggregateRequest,
+  AggregatedRow,
+  HistoryRequest,
+  HistoryRow,
+  LatestValue,
+} from '../types/query.js';
 
 export const INSERT_CHUNK_SIZE = 5_000;
 
@@ -108,6 +114,49 @@ export class SnapshotRepository {
       metricId: row.metric_id,
       recordedAt: row.recorded_at.toISOString(),
       value: row.value,
+    }));
+  }
+
+  async aggregate(request: AggregateRequest): Promise<AggregatedRow[]> {
+    const result = await this.db.query<{
+      metric_id: number;
+      bucket_start: Date;
+      average: number;
+      minimum: number;
+      maximum: number;
+      samples: number;
+    }>(
+      `SELECT metric_id,
+              to_timestamp(floor(extract(epoch FROM recorded_at) / $5) * $5) AS bucket_start,
+              avg(value)   AS average,
+              min(value)   AS minimum,
+              max(value)   AS maximum,
+              count(*)::bigint AS samples
+         FROM metric_snapshots
+        WHERE service_id = $1
+          AND metric_id = ANY($2::smallint[])
+          AND recorded_at >= $3
+          AND recorded_at < $4
+        GROUP BY metric_id, bucket_start
+        ORDER BY metric_id ASC, bucket_start ASC
+        LIMIT $6`,
+      [
+        request.serviceId,
+        request.metricIds,
+        request.from,
+        request.to,
+        request.stepSeconds,
+        request.limit,
+      ],
+    );
+
+    return result.rows.map((row) => ({
+      metricId: row.metric_id,
+      bucketStart: row.bucket_start.toISOString(),
+      average: row.average,
+      minimum: row.minimum,
+      maximum: row.maximum,
+      samples: row.samples,
     }));
   }
 

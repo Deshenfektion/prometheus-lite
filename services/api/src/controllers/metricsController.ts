@@ -18,6 +18,7 @@ const historyQuery = z.object({
   from: isoDate.optional(),
   to: isoDate.optional(),
   limit: z.coerce.number().int().min(1).max(MAX_POINTS).optional(),
+  step: z.coerce.number().int().min(1).max(86_400).optional(),
 });
 
 export async function listMetricDefinitions(_req: Request, res: Response): Promise<void> {
@@ -38,6 +39,7 @@ export async function getMetricHistory(req: Request, res: Response): Promise<voi
     ...(params.from === undefined ? {} : { from: params.from }),
     ...(params.to === undefined ? {} : { to: params.to }),
     ...(params.limit === undefined ? {} : { limit: params.limit }),
+    ...(params.step === undefined ? {} : { stepSeconds: params.step }),
   });
 
   res.json({ data: series });
