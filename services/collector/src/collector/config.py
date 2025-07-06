@@ -43,6 +43,8 @@ class CollectorSettings(BaseSettings):
     send_max_attempts: int = Field(default=4, ge=1, le=10)
     window_max_samples: int = Field(default=120, ge=2, le=10_000)
     window_max_age_seconds: float = Field(default=300.0, gt=0)
+    self_service_slug: str = ""
+    self_interval_seconds: float = Field(default=15.0, gt=0)
     log_level: str = "info"
     log_json: bool = False
 

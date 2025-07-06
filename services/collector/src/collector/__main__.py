@@ -6,7 +6,7 @@ import sys
 import httpx
 
 from collector.aggregation import WindowRegistry
-from collector.collectors import HttpProbe, MetricsAssembler
+from collector.collectors import HttpProbe, MetricsAssembler, run_self_monitor
 from collector.config import CollectorSettings, TargetConfig, load_targets
 from collector.logging_setup import configure_logging, get_logger
 from collector.scheduler import PollScheduler
@@ -48,6 +48,15 @@ async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
         async with asyncio.TaskGroup() as group:
             group.create_task(shipper.run(), name="shipper")
             group.create_task(scheduler.run(), name="scheduler")
+            if settings.self_service_slug:
+                group.create_task(
+                    run_self_monitor(
+                        settings.self_service_slug,
+                        settings.self_interval_seconds,
+                        shipper.submit,
+                    ),
+                    name="self-monitor",
+                )
 
 
 def main() -> int:
