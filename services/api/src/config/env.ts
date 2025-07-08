@@ -13,6 +13,7 @@ const envSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(200).default(10),
   DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().min(0).default(30_000),
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).default(10_000),
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
 });
 
 export type Env = z.infer<typeof envSchema>;

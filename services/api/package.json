@@ -11,9 +11,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "migrate": "tsx src/db/migrate.ts",
-    "benchmark": "tsx src/scripts/benchmarkIngest.ts"
+    "benchmark": "tsx src/scripts/benchmarkIngest.ts",
+    "create-user": "tsx src/scripts/createUser.ts"
   },
   "dependencies": {
+    "bcryptjs": "3.0.2",
     "dotenv": "16.4.7",
     "express": "4.21.2",
     "pg": "8.13.1",
