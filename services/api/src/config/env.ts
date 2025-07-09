@@ -14,6 +14,9 @@ const envSchema = z.object({
   DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().min(0).default(30_000),
   DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).default(10_000),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  JWT_SECRET: z.string().min(32),
+  JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(3600),
+  JWT_ISSUER: z.string().min(1).default('prometheus-lite'),
 });
 
 export type Env = z.infer<typeof envSchema>;
