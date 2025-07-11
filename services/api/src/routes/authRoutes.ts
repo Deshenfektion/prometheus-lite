@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import { login, logout } from '../controllers/authController.js';
+import { authenticate } from '../middleware/authenticate.js';
+import { currentUser, login, logout } from '../controllers/authController.js';
 
 export const authRoutes = Router();
 
 authRoutes.post('/login', asyncHandler(login));
-authRoutes.post('/logout', asyncHandler(logout));
+authRoutes.post('/logout', authenticate, asyncHandler(logout));
+authRoutes.get('/me', authenticate, asyncHandler(currentUser));

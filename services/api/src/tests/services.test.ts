@@ -2,9 +2,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { databaseAvailable, disconnect, prepareDatabase, resetDatabase } from './helpers/database.js';
+import { bearer, createTestUser } from './helpers/auth.js';
 
 const available = await databaseAvailable();
 const app = createApp();
+let auth = '';
 
 describe.skipIf(!available)('service registry', () => {
   beforeAll(async () => {
@@ -13,6 +15,7 @@ describe.skipIf(!available)('service registry', () => {
 
   beforeEach(async () => {
     await resetDatabase();
+    auth = bearer((await createTestUser('ADMIN')).token);
   });
 
   afterAll(async () => {
@@ -20,13 +23,14 @@ describe.skipIf(!available)('service registry', () => {
   });
 
   it('starts with an empty registry', async () => {
-    const response = await request(app).get('/api/v1/services').expect(200);
+    const response = await request(app).get('/api/v1/services').set('authorization', auth).expect(200);
     expect(response.body).toEqual({ data: [] });
   });
 
   it('registers a service and applies defaults', async () => {
     const response = await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({
         slug: 'checkout-api',
         displayName: 'Checkout API',
@@ -47,6 +51,7 @@ describe.skipIf(!available)('service registry', () => {
   it('rejects a malformed slug', async () => {
     const response = await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({ slug: 'Checkout API', displayName: 'Checkout API', baseUrl: 'http://checkout:8081' })
       .expect(400);
 
@@ -59,8 +64,8 @@ describe.skipIf(!available)('service registry', () => {
       displayName: 'Checkout API',
       baseUrl: 'http://checkout:8081',
     };
-    await request(app).post('/api/v1/services').send(payload).expect(201);
-    const response = await request(app).post('/api/v1/services').send(payload).expect(409);
+    await request(app).post('/api/v1/services').set('authorization', auth).send(payload).expect(201);
+    const response = await request(app).post('/api/v1/services').set('authorization', auth).send(payload).expect(409);
 
     expect(response.body.error.code).toBe('CONFLICT');
   });
@@ -68,6 +73,7 @@ describe.skipIf(!available)('service registry', () => {
   it('filters by environment and enabled state', async () => {
     await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({
         slug: 'checkout-api',
         displayName: 'Checkout API',
@@ -77,6 +83,7 @@ describe.skipIf(!available)('service registry', () => {
       .expect(201);
     await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({
         slug: 'search-api',
         displayName: 'Search API',
@@ -86,11 +93,11 @@ describe.skipIf(!available)('service registry', () => {
       })
       .expect(201);
 
-    const staging = await request(app).get('/api/v1/services?environment=staging').expect(200);
+    const staging = await request(app).get('/api/v1/services?environment=staging').set('authorization', auth).expect(200);
     expect(staging.body.data).toHaveLength(1);
     expect(staging.body.data[0].slug).toBe('search-api');
 
-    const disabled = await request(app).get('/api/v1/services?enabled=false').expect(200);
+    const disabled = await request(app).get('/api/v1/services?enabled=false').set('authorization', auth).expect(200);
     expect(disabled.body.data).toHaveLength(1);
     expect(disabled.body.data[0].slug).toBe('search-api');
   });
@@ -98,22 +105,24 @@ describe.skipIf(!available)('service registry', () => {
   it('updates and deletes a service', async () => {
     await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({ slug: 'search-api', displayName: 'Search API', baseUrl: 'http://search:8082' })
       .expect(201);
 
     const patched = await request(app)
       .patch('/api/v1/services/search-api')
+      .set('authorization', auth)
       .send({ pollIntervalSeconds: 30, enabled: false })
       .expect(200);
     expect(patched.body.data.pollIntervalSeconds).toBe(30);
     expect(patched.body.data.enabled).toBe(false);
 
-    await request(app).delete('/api/v1/services/search-api').expect(204);
-    await request(app).get('/api/v1/services/search-api').expect(404);
+    await request(app).delete('/api/v1/services/search-api').set('authorization', auth).expect(204);
+    await request(app).get('/api/v1/services/search-api').set('authorization', auth).expect(404);
   });
 
   it('returns 404 for unknown routes', async () => {
-    const response = await request(app).get('/api/v1/nope').expect(404);
+    const response = await request(app).get('/api/v1/nope').set('authorization', auth).expect(404);
     expect(response.body.error.code).toBe('NOT_FOUND');
   });
 });

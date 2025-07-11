@@ -21,7 +21,7 @@ export async function prepareDatabase(): Promise<void> {
 }
 
 export async function resetDatabase(): Promise<void> {
-  await query('TRUNCATE services RESTART IDENTITY CASCADE');
+  await query('TRUNCATE services, users RESTART IDENTITY CASCADE');
 }
 
 export async function disconnect(): Promise<void> {

@@ -42,6 +42,7 @@ class SnapshotShipper:
     client: httpx.AsyncClient
     api_base_url: str
     collector_name: str
+    api_token: str = ""
     max_batch_size: int = 200
     max_wait_seconds: float = 2.0
     max_queue_size: int = 10_000
@@ -55,6 +56,11 @@ class SnapshotShipper:
     @property
     def endpoint(self) -> str:
         return f"{self.api_base_url.rstrip('/')}{INGEST_PATH}"
+
+    def _headers(self) -> dict[str, str]:
+        if not self.api_token:
+            return {}
+        return {"authorization": f"Bearer {self.api_token}"}
 
     @property
     def pending(self) -> int:
@@ -93,6 +99,7 @@ class SnapshotShipper:
             response = await self.client.post(
                 self.endpoint,
                 json=batch.model_dump(mode="json", by_alias=True),
+                headers=self._headers(),
             )
         except httpx.HTTPError as error:
             raise TransientIngestError(str(error)) from error

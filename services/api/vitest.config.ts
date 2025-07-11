@@ -9,6 +9,7 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       NODE_ENV: 'test',
+      BCRYPT_ROUNDS: '4',
     },
   },
 });

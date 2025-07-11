@@ -4,9 +4,11 @@ import { createApp } from '../app.js';
 import { query } from '../db/pool.js';
 import { metricCatalog } from '../services/metricCatalog.js';
 import { databaseAvailable, disconnect, prepareDatabase, resetDatabase } from './helpers/database.js';
+import { COLLECTOR_TOKEN, bearer, createTestUser } from './helpers/auth.js';
 
 const available = await databaseAvailable();
 const app = createApp();
+let auth = '';
 
 function snapshot(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -18,7 +20,10 @@ function snapshot(overrides: Record<string, unknown> = {}): Record<string, unkno
 }
 
 function post(snapshots: Record<string, unknown>[]): request.Test {
-  return request(app).post('/api/v1/ingest/snapshots').send({ collector: 'test', snapshots });
+  return request(app)
+    .post('/api/v1/ingest/snapshots')
+    .set('authorization', bearer(COLLECTOR_TOKEN))
+    .send({ collector: 'test', snapshots });
 }
 
 async function storedPointCount(): Promise<number> {
@@ -36,8 +41,10 @@ describe.skipIf(!available)('metric ingestion', () => {
   beforeEach(async () => {
     await resetDatabase();
     metricCatalog.invalidate();
+    auth = bearer((await createTestUser('ADMIN')).token);
     await request(app)
       .post('/api/v1/services')
+      .set('authorization', auth)
       .send({
         slug: 'checkout-api',
         displayName: 'Checkout API',
@@ -139,6 +146,7 @@ describe.skipIf(!available)('metric ingestion', () => {
   it('refuses malformed payloads', async () => {
     await request(app)
       .post('/api/v1/ingest/snapshots')
+      .set('authorization', bearer(COLLECTOR_TOKEN))
       .send({ collector: 'test', snapshots: [] })
       .expect(400);
 

@@ -17,6 +17,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(3600),
   JWT_ISSUER: z.string().min(1).default('prometheus-lite'),
+  INGEST_TOKEN: z.string().min(16),
 });
 
 export type Env = z.infer<typeof envSchema>;

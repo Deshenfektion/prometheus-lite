@@ -27,6 +27,7 @@ async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
             client=client,
             api_base_url=settings.api_base_url,
             collector_name=settings.name,
+            api_token=settings.api_token,
             max_batch_size=settings.batch_max_size,
             max_wait_seconds=settings.batch_max_wait_seconds,
             max_queue_size=settings.queue_max_size,

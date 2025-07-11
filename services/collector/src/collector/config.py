@@ -34,6 +34,7 @@ class CollectorSettings(BaseSettings):
 
     name: str = "collector-1"
     api_base_url: str = "http://localhost:4000"
+    api_token: str = ""
     config_file: Path = Path("collector.yaml")
     default_interval_seconds: float = Field(default=15.0, gt=0)
     request_timeout_seconds: float = Field(default=5.0, gt=0)
