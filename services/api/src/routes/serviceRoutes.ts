@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { requireAdmin } from '../middleware/requireRole.js';
 import {
   createService,
   deleteService,
@@ -11,7 +12,8 @@ import {
 export const serviceRoutes = Router();
 
 serviceRoutes.get('/', asyncHandler(listServices));
-serviceRoutes.post('/', asyncHandler(createService));
 serviceRoutes.get('/:slug', asyncHandler(getService));
-serviceRoutes.patch('/:slug', asyncHandler(updateService));
-serviceRoutes.delete('/:slug', asyncHandler(deleteService));
+
+serviceRoutes.post('/', requireAdmin, asyncHandler(createService));
+serviceRoutes.patch('/:slug', requireAdmin, asyncHandler(updateService));
+serviceRoutes.delete('/:slug', requireAdmin, asyncHandler(deleteService));
