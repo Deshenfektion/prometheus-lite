@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
 import { query } from '../db/pool.js';
 import { metricCatalog } from '../services/metricCatalog.js';
-import { databaseAvailable, disconnect, prepareDatabase, resetDatabase } from './helpers/database.js';
+import { databaseAvailable, prepareDatabase, resetDatabase } from './helpers/database.js';
 import { COLLECTOR_TOKEN, bearer, createTestUser } from './helpers/auth.js';
 
 const available = await databaseAvailable();
@@ -53,9 +53,6 @@ describe.skipIf(!available)('metric ingestion', () => {
       .expect(201);
   });
 
-  afterAll(async () => {
-    await disconnect();
-  });
 
   it('stores one row per metric in a snapshot', async () => {
     const response = await post([snapshot()]).expect(202);

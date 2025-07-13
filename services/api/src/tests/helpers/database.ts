@@ -24,6 +24,12 @@ export async function resetDatabase(): Promise<void> {
   await query('TRUNCATE services, users RESTART IDENTITY CASCADE');
 }
 
+let closed = false;
+
 export async function disconnect(): Promise<void> {
+  if (closed) {
+    return;
+  }
+  closed = true;
   await pool.end();
 }

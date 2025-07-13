@@ -1,7 +1,7 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
-import { databaseAvailable, disconnect, prepareDatabase, resetDatabase } from './helpers/database.js';
+import { databaseAvailable, prepareDatabase, resetDatabase } from './helpers/database.js';
 import { bearer, createTestUser } from './helpers/auth.js';
 
 const available = await databaseAvailable();
@@ -18,9 +18,6 @@ describe.skipIf(!available)('service registry', () => {
     auth = bearer((await createTestUser('ADMIN')).token);
   });
 
-  afterAll(async () => {
-    await disconnect();
-  });
 
   it('starts with an empty registry', async () => {
     const response = await request(app).get('/api/v1/services').set('authorization', auth).expect(200);
