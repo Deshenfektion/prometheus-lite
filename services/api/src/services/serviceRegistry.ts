@@ -1,5 +1,6 @@
 import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
 import { ConflictError, NotFoundError, isUniqueViolation } from '../lib/errors.js';
+import { serviceDirectory } from './serviceDirectory.js';
 import type {
   CreateServiceInput,
   ServiceFilter,
@@ -28,7 +29,9 @@ export class ServiceRegistry {
 
   async create(input: CreateServiceInput): Promise<ServiceRecord> {
     try {
-      return await this.repository.create(input);
+      const created = await this.repository.create(input);
+      serviceDirectory.invalidate();
+      return created;
     } catch (error) {
       if (isUniqueViolation(error)) {
         throw new ConflictError(`Service '${input.slug}' already exists`);
@@ -43,12 +46,14 @@ export class ServiceRegistry {
     if (updated === null) {
       throw new NotFoundError('Service', slug);
     }
+    serviceDirectory.invalidate();
     return updated;
   }
 
   async remove(slug: string): Promise<void> {
     const existing = await this.getBySlug(slug);
     await this.repository.remove(existing.id);
+    serviceDirectory.invalidate();
   }
 }
 

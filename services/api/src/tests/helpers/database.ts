@@ -1,5 +1,7 @@
 import { runMigrations } from '../../db/migrate.js';
 import { pool, query } from '../../db/pool.js';
+import { metricCatalog } from '../../services/metricCatalog.js';
+import { serviceDirectory } from '../../services/serviceDirectory.js';
 
 let prepared = false;
 
@@ -22,6 +24,8 @@ export async function prepareDatabase(): Promise<void> {
 
 export async function resetDatabase(): Promise<void> {
   await query('TRUNCATE services, users RESTART IDENTITY CASCADE');
+  serviceDirectory.invalidate();
+  metricCatalog.invalidate();
 }
 
 let closed = false;
