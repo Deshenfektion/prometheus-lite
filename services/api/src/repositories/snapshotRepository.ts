@@ -58,12 +58,7 @@ export class SnapshotRepository {
         values[index] = point.value;
       }
 
-      const result = await this.db.query(INSERT_CHUNK, [
-        serviceIds,
-        metricIds,
-        timestamps,
-        values,
-      ]);
+      const result = await this.db.query(INSERT_CHUNK, [serviceIds, metricIds, timestamps, values]);
       written += result.rowCount ?? 0;
     }
 

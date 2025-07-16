@@ -1,5 +1,7 @@
-import { MetricCatalog, metricCatalog } from './metricCatalog.js';
-import { ServiceDirectory, serviceDirectory } from './serviceDirectory.js';
+import type { MetricCatalog } from './metricCatalog.js';
+import { metricCatalog } from './metricCatalog.js';
+import type { ServiceDirectory } from './serviceDirectory.js';
+import { serviceDirectory } from './serviceDirectory.js';
 import { validateMetricValue } from './metricValidation.js';
 import { TimestampError, normalizeTimestamp } from '../lib/time.js';
 import type {

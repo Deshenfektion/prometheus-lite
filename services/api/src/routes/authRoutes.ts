@@ -6,5 +6,5 @@ import { currentUser, login, logout } from '../controllers/authController.js';
 export const authRoutes = Router();
 
 authRoutes.post('/login', asyncHandler(login));
-authRoutes.post('/logout', authenticate, asyncHandler(logout));
+authRoutes.post('/logout', authenticate, logout);
 authRoutes.get('/me', authenticate, asyncHandler(currentUser));

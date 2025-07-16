@@ -1,6 +1,9 @@
-import { SnapshotRepository, snapshotRepository } from '../repositories/snapshotRepository.js';
-import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
-import { MetricCatalog, metricCatalog } from './metricCatalog.js';
+import type { SnapshotRepository } from '../repositories/snapshotRepository.js';
+import { snapshotRepository } from '../repositories/snapshotRepository.js';
+import type { ServiceRepository } from '../repositories/serviceRepository.js';
+import { serviceRepository } from '../repositories/serviceRepository.js';
+import type { MetricCatalog } from './metricCatalog.js';
+import { metricCatalog } from './metricCatalog.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { chooseStep, snapStep } from '../lib/buckets.js';
 import type { MetricDefinition } from '../types/metrics.js';

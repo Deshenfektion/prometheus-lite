@@ -1,4 +1,5 @@
-import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
+import type { ServiceRepository } from '../repositories/serviceRepository.js';
+import { serviceRepository } from '../repositories/serviceRepository.js';
 import { ConflictError, NotFoundError, isUniqueViolation } from '../lib/errors.js';
 import { serviceDirectory } from './serviceDirectory.js';
 import type {

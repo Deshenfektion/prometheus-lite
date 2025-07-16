@@ -18,9 +18,11 @@ describe.skipIf(!available)('service registry', () => {
     auth = bearer((await createTestUser('ADMIN')).token);
   });
 
-
   it('starts with an empty registry', async () => {
-    const response = await request(app).get('/api/v1/services').set('authorization', auth).expect(200);
+    const response = await request(app)
+      .get('/api/v1/services')
+      .set('authorization', auth)
+      .expect(200);
     expect(response.body).toEqual({ data: [] });
   });
 
@@ -61,8 +63,16 @@ describe.skipIf(!available)('service registry', () => {
       displayName: 'Checkout API',
       baseUrl: 'http://checkout:8081',
     };
-    await request(app).post('/api/v1/services').set('authorization', auth).send(payload).expect(201);
-    const response = await request(app).post('/api/v1/services').set('authorization', auth).send(payload).expect(409);
+    await request(app)
+      .post('/api/v1/services')
+      .set('authorization', auth)
+      .send(payload)
+      .expect(201);
+    const response = await request(app)
+      .post('/api/v1/services')
+      .set('authorization', auth)
+      .send(payload)
+      .expect(409);
 
     expect(response.body.error.code).toBe('CONFLICT');
   });
@@ -90,11 +100,17 @@ describe.skipIf(!available)('service registry', () => {
       })
       .expect(201);
 
-    const staging = await request(app).get('/api/v1/services?environment=staging').set('authorization', auth).expect(200);
+    const staging = await request(app)
+      .get('/api/v1/services?environment=staging')
+      .set('authorization', auth)
+      .expect(200);
     expect(staging.body.data).toHaveLength(1);
     expect(staging.body.data[0].slug).toBe('search-api');
 
-    const disabled = await request(app).get('/api/v1/services?enabled=false').set('authorization', auth).expect(200);
+    const disabled = await request(app)
+      .get('/api/v1/services?enabled=false')
+      .set('authorization', auth)
+      .expect(200);
     expect(disabled.body.data).toHaveLength(1);
     expect(disabled.body.data[0].slug).toBe('search-api');
   });

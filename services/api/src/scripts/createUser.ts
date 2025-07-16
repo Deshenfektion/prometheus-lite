@@ -10,9 +10,16 @@ const { values } = parseArgs({
     email: { type: 'string' },
     password: { type: 'string' },
     name: { type: 'string' },
-    role: { type: 'string', default: 'USER' },
+    role: { type: 'string' },
   },
 });
+
+const ROLES: readonly Role[] = ['USER', 'ADMIN'];
+
+function parseRole(input: string | undefined): Role | null {
+  const candidate = (input ?? 'USER').toUpperCase();
+  return ROLES.find((role) => role === candidate) ?? null;
+}
 
 function usage(): never {
   process.stderr.write(
@@ -25,12 +32,9 @@ function usage(): never {
 const email = values.email;
 const password = values.password;
 const displayName = values.name;
-const role = (values.role ?? 'USER').toUpperCase() as Role;
+const role = parseRole(values.role);
 
-if (email === undefined || password === undefined || displayName === undefined) {
-  usage();
-}
-if (role !== 'USER' && role !== 'ADMIN') {
+if (email === undefined || password === undefined || displayName === undefined || role === null) {
   usage();
 }
 

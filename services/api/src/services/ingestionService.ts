@@ -1,5 +1,7 @@
-import { SnapshotRepository, snapshotRepository } from '../repositories/snapshotRepository.js';
-import { SnapshotNormalizer, snapshotNormalizer } from './snapshotNormalizer.js';
+import type { SnapshotRepository } from '../repositories/snapshotRepository.js';
+import { snapshotRepository } from '../repositories/snapshotRepository.js';
+import type { SnapshotNormalizer } from './snapshotNormalizer.js';
+import { snapshotNormalizer } from './snapshotNormalizer.js';
 import { logger } from '../lib/logger.js';
 import type { IngestBatch, IngestOutcome } from '../types/metrics.js';
 

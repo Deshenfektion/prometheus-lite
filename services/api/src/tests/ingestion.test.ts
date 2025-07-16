@@ -53,7 +53,6 @@ describe.skipIf(!available)('metric ingestion', () => {
       .expect(201);
   });
 
-
   it('stores one row per metric in a snapshot', async () => {
     const response = await post([snapshot()]).expect(202);
 

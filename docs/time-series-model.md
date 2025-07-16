@@ -2,8 +2,8 @@
 
 ## The shape of the data
 
-Everything the collector produces is the same shape: *this service, this metric, at this
-instant, had this value*. That is the entire fact table.
+Everything the collector produces is the same shape: _this service, this metric, at this
+instant, had this value_. That is the entire fact table.
 
 ```sql
 CREATE TABLE metric_snapshots (
@@ -66,7 +66,7 @@ a no-op rather than a duplicated data point.
 
 This is why timestamps are normalised to millisecond precision at the edge. If the
 collector sent microseconds and the API truncated them, a retry could produce a
-*different* key for the same reading and the deduplication would silently stop working.
+_different_ key for the same reading and the deduplication would silently stop working.
 
 ## Writing efficiently
 
@@ -82,16 +82,16 @@ ON CONFLICT (service_id, metric_id, recorded_at) DO NOTHING
 ```
 
 The useful property is that the parameter count is fixed at four no matter how many rows
-are in the batch. A multi-row `VALUES` list would use four parameters *per row* and hit
+are in the batch. A multi-row `VALUES` list would use four parameters _per row_ and hit
 the 65,535 parameter ceiling at around 16,000 rows.
 
 Measured with `npm run benchmark --workspace services/api`, 50,000 points into Postgres 17
 in a local container:
 
-| Strategy | Rows/s |
-| --- | --- |
-| One `INSERT` per row, single transaction | ~1,700 |
-| `UNNEST` batches of 5,000 | ~33,000 |
+| Strategy                                 | Rows/s  |
+| ---------------------------------------- | ------- |
+| One `INSERT` per row, single transaction | ~1,700  |
+| `UNNEST` batches of 5,000                | ~33,000 |
 
 These are laptop numbers against a container on the same machine, so treat the ratio as
 the finding and the absolute values as an upper bound for this hardware. The ratio is

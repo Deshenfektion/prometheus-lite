@@ -1,8 +1,14 @@
 import type { Request } from 'express';
-import type { ZodTypeAny, output } from 'zod';
+import type { ZodType, ZodTypeDef } from 'zod';
 import { ValidationError } from './errors.js';
 
-function parse<S extends ZodTypeAny>(schema: S, input: unknown, source: string): output<S> {
+type Schema<Output, Input> = ZodType<Output, ZodTypeDef, Input>;
+
+function parse<Output, Input>(
+  schema: Schema<Output, Input>,
+  input: unknown,
+  source: string,
+): Output {
   const result = schema.safeParse(input);
   if (!result.success) {
     throw new ValidationError(`Invalid request ${source}`, {
@@ -12,21 +18,25 @@ function parse<S extends ZodTypeAny>(schema: S, input: unknown, source: string):
       })),
     });
   }
-  return result.data as output<S>;
+  return result.data;
 }
 
-export function parseBody<S extends ZodTypeAny>(schema: S, req: Request): output<S> {
+export function parseBody<Output, Input>(schema: Schema<Output, Input>, req: Request): Output {
   return parse(schema, req.body, 'body');
 }
 
-export function parseQuery<S extends ZodTypeAny>(schema: S, req: Request): output<S> {
+export function parseQuery<Output, Input>(schema: Schema<Output, Input>, req: Request): Output {
   return parse(schema, req.query, 'query');
 }
 
-export function parseParams<S extends ZodTypeAny>(schema: S, req: Request): output<S> {
+export function parseParams<Output, Input>(schema: Schema<Output, Input>, req: Request): Output {
   return parse(schema, req.params, 'parameters');
 }
 
-export function parseValue<S extends ZodTypeAny>(schema: S, input: unknown, label: string): output<S> {
+export function parseValue<Output, Input>(
+  schema: Schema<Output, Input>,
+  input: unknown,
+  label: string,
+): Output {
   return parse(schema, input, label);
 }

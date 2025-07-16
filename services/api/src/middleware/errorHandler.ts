@@ -1,4 +1,4 @@
-import type { ErrorRequestHandler, RequestHandler } from 'express';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { isProduction } from '../config/env.js';
@@ -12,7 +12,12 @@ export const notFoundHandler: RequestHandler = (req, res) => {
   });
 };
 
-export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+export const errorHandler = (
+  error: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+): void => {
   if (error instanceof AppError) {
     if (error.status >= 500) {
       logger.error({ err: error }, 'request failed');

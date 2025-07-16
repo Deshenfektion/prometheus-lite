@@ -1,4 +1,5 @@
-import { MetricRepository, metricRepository } from '../repositories/metricRepository.js';
+import type { MetricRepository } from '../repositories/metricRepository.js';
+import { metricRepository } from '../repositories/metricRepository.js';
 import type { MetricDefinition } from '../types/metrics.js';
 
 const REFRESH_INTERVAL_MS = 60_000;

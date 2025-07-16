@@ -17,20 +17,29 @@ const server = app.listen(env.PORT, () => {
 
 let shuttingDown = false;
 
-async function shutdown(signal: string): Promise<void> {
+function shutdown(signal: string): void {
   if (shuttingDown) {
     return;
   }
   shuttingDown = true;
   logger.info({ signal }, 'shutting down');
 
-  server.close(async () => {
-    await closePool();
-    process.exit(0);
+  server.close(() => {
+    closePool()
+      .catch((error: unknown) => {
+        logger.error({ err: error }, 'failed to close the connection pool');
+      })
+      .finally(() => {
+        process.exit(0);
+      });
   });
 
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 
-process.on('SIGTERM', () => void shutdown('SIGTERM'));
-process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  shutdown('SIGINT');
+});

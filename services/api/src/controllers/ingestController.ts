@@ -11,10 +11,9 @@ const metricValue = z
 const snapshotSchema = z.object({
   service: z.string().regex(/^[a-z0-9][a-z0-9-]{1,62}$/),
   recordedAt: z.string().min(20).max(40),
-  metrics: z.record(z.string().regex(/^[a-z][a-z0-9_]{1,62}$/), metricValue).refine(
-    (metrics) => Object.keys(metrics).length > 0,
-    'at least one metric is required',
-  ),
+  metrics: z
+    .record(z.string().regex(/^[a-z][a-z0-9_]{1,62}$/), metricValue)
+    .refine((metrics) => Object.keys(metrics).length > 0, 'at least one metric is required'),
 });
 
 const batchSchema = z.object({

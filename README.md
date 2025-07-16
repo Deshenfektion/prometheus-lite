@@ -10,12 +10,12 @@ makes all of it readable — and to understand the trade-offs in each.
 
 ## Components
 
-| Component | Stack | Responsibility |
-| --- | --- | --- |
-| Collector | Python 3.13, httpx, asyncio | Poll targets on an interval, produce metric snapshots |
-| API | TypeScript, Express, Postgres | Ingest snapshots, serve queries, evaluate alerts |
-| Storage | PostgreSQL 17 | Time-series snapshots, rules, alert history |
-| Dashboard | React, Vite, Tailwind | Visualise service health and trends |
+| Component | Stack                         | Responsibility                                        |
+| --------- | ----------------------------- | ----------------------------------------------------- |
+| Collector | Python 3.13, httpx, asyncio   | Poll targets on an interval, produce metric snapshots |
+| API       | TypeScript, Express, Postgres | Ingest snapshots, serve queries, evaluate alerts      |
+| Storage   | PostgreSQL 17                 | Time-series snapshots, rules, alert history           |
+| Dashboard | React, Vite, Tailwind         | Visualise service health and trends                   |
 
 ## Pipeline
 
@@ -86,15 +86,15 @@ suites still run on a bare checkout.
 
 ## API
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | Liveness and database reachability |
-| `GET` | `/api/v1/services` | List registered services |
-| `POST` | `/api/v1/services` | Register a service |
-| `GET` | `/api/v1/services/:slug` | Fetch one service |
-| `PATCH` | `/api/v1/services/:slug` | Update a service |
-| `DELETE` | `/api/v1/services/:slug` | Remove a service and its snapshots |
-| `POST` | `/api/v1/ingest/snapshots` | Submit a batch of metric snapshots |
+| Method   | Path                       | Purpose                            |
+| -------- | -------------------------- | ---------------------------------- |
+| `GET`    | `/health`                  | Liveness and database reachability |
+| `GET`    | `/api/v1/services`         | List registered services           |
+| `POST`   | `/api/v1/services`         | Register a service                 |
+| `GET`    | `/api/v1/services/:slug`   | Fetch one service                  |
+| `PATCH`  | `/api/v1/services/:slug`   | Update a service                   |
+| `DELETE` | `/api/v1/services/:slug`   | Remove a service and its snapshots |
+| `POST`   | `/api/v1/ingest/snapshots` | Submit a batch of metric snapshots |
 
 ## Documentation
 

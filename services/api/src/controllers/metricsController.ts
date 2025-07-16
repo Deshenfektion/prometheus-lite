@@ -8,9 +8,12 @@ const isoDate = z
   .datetime({ offset: true })
   .transform((value) => new Date(value));
 
-const csvKeys = z
-  .string()
-  .transform((value) => value.split(',').map((part) => part.trim()).filter(Boolean));
+const csvKeys = z.string().transform((value) =>
+  value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean),
+);
 
 const historyQuery = z.object({
   service: z.string().min(2).max(63),

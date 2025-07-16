@@ -1,4 +1,5 @@
-import { ServiceRepository, serviceRepository } from '../repositories/serviceRepository.js';
+import type { ServiceRepository } from '../repositories/serviceRepository.js';
+import { serviceRepository } from '../repositories/serviceRepository.js';
 import type { ServiceRecord } from '../types/service.js';
 
 const REFRESH_INTERVAL_MS = 30_000;

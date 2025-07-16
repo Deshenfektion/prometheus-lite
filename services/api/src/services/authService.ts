@@ -1,4 +1,5 @@
-import { UserRepository, userRepository } from '../repositories/userRepository.js';
+import type { UserRepository } from '../repositories/userRepository.js';
+import { userRepository } from '../repositories/userRepository.js';
 import { signAccessToken } from '../lib/jwt.js';
 import { verifyPassword } from '../lib/password.js';
 import { UnauthorizedError } from '../lib/errors.js';

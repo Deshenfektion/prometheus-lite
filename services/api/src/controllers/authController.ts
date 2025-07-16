@@ -28,6 +28,6 @@ export async function currentUser(req: Request, res: Response): Promise<void> {
   res.json({ data: await authService.profile(id) });
 }
 
-export async function logout(_req: Request, res: Response): Promise<void> {
+export function logout(_req: Request, res: Response): void {
   res.status(204).send();
 }
