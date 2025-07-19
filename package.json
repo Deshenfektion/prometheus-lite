@@ -9,7 +9,8 @@
     "node": ">=22.0.0"
   },
   "workspaces": [
-    "services/api"
+    "services/api",
+    "web"
   ],
   "scripts": {
     "api": "npm run dev --workspace services/api",
@@ -17,7 +18,8 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "web": "npm run dev --workspace web"
   },
   "devDependencies": {
     "prettier": "3.5.3"
