@@ -1,11 +1,19 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Layout } from './components/Layout.tsx';
+import { AlertsPage } from './pages/AlertsPage.tsx';
+import { DashboardPage } from './pages/DashboardPage.tsx';
+import { NotFoundPage } from './pages/NotFoundPage.tsx';
+
 export function App() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="rounded-lg border border-line bg-surface px-6 py-5 text-center">
-        <p className="font-mono text-xs tracking-widest text-ink-faint uppercase">prometheus-lite</p>
-        <h1 className="mt-2 text-lg font-semibold">Dashboard</h1>
-        <p className="mt-1 text-sm text-ink-muted">Waiting on the first wired-up view.</p>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="alerts" element={<AlertsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
