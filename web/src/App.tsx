@@ -3,6 +3,7 @@ import { Layout } from './components/Layout.tsx';
 import { AlertsPage } from './pages/AlertsPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
+import { ServiceDetailPage } from './pages/ServiceDetailPage.tsx';
 
 export function App() {
   return (
@@ -10,6 +11,7 @@ export function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="services/:slug" element={<ServiceDetailPage />} />
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
