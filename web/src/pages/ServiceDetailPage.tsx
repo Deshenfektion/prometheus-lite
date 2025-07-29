@@ -6,9 +6,9 @@ import { LatencyChart } from '../charts/LatencyChart.tsx';
 import { ResourceChart } from '../charts/ResourceChart.tsx';
 import { ThroughputChart } from '../charts/ThroughputChart.tsx';
 import { useMetricHistory } from '../hooks/useMetricHistory.ts';
+import { useRefresh } from '../hooks/useRefresh.ts';
 
 const WINDOW_SECONDS = 3600;
-const REFRESH_INTERVAL_MS = 15_000;
 
 const METRICS = [
   'latency_avg_ms',
@@ -22,12 +22,13 @@ const METRICS = [
 
 export function ServiceDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const { effectiveIntervalMs } = useRefresh();
 
   const history = useMetricHistory({
     service: slug,
     metrics: METRICS,
     windowSeconds: WINDOW_SECONDS,
-    refreshIntervalMs: REFRESH_INTERVAL_MS,
+    refreshIntervalMs: effectiveIntervalMs,
   });
 
   const hint =

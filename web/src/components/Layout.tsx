@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { RefreshControl } from './RefreshControl.tsx';
 import { UserMenu } from './UserMenu.tsx';
 
 const NAV_ITEMS = [
@@ -34,6 +35,7 @@ export function Layout({ toolbar }: { toolbar?: ReactNode }) {
 
           <div className="ml-auto flex items-center gap-4">
             {toolbar}
+            <RefreshControl />
             <UserMenu />
           </div>
         </div>

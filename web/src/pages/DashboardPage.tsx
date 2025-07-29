@@ -2,11 +2,11 @@ import { PageHeading } from '../components/PageHeading.tsx';
 import { ServiceCard } from '../components/ServiceCard.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { useServiceOverview } from '../hooks/useServiceOverview.ts';
-
-const REFRESH_INTERVAL_MS = 10_000;
+import { useRefresh } from '../hooks/useRefresh.ts';
 
 export function DashboardPage() {
-  const overview = useServiceOverview(REFRESH_INTERVAL_MS);
+  const { effectiveIntervalMs } = useRefresh();
+  const overview = useServiceOverview(effectiveIntervalMs);
 
   if (overview.isLoading) {
     return (
