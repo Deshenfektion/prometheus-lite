@@ -13,7 +13,8 @@
     "migrate": "tsx src/db/migrate.ts",
     "benchmark": "tsx src/scripts/benchmarkIngest.ts",
     "create-user": "tsx src/scripts/createUser.ts",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "seed": "tsx src/scripts/seedDemoData.ts"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
