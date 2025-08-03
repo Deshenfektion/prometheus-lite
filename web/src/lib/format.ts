@@ -52,6 +52,13 @@ export function formatRelativeTime(iso: string | undefined, now: number = Date.n
   return `${Math.floor(seconds / 86_400)}d ago`;
 }
 
+export function durationAxisFormatter(maxValue: number): (value: number) => string {
+  if (maxValue >= 1000) {
+    return (value) => (value === 0 ? '0' : `${(value / 1000).toFixed(1)} s`);
+  }
+  return (value) => (value === 0 ? '0' : `${Math.round(value)} ms`);
+}
+
 export function formatClockTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }

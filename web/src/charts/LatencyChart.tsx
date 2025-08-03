@@ -20,7 +20,7 @@ import {
   seriesColor,
 } from './chartTheme.ts';
 import { hasAnyPoints, toChartRows } from './seriesData.ts';
-import { formatMilliseconds } from '../lib/format.ts';
+import { durationAxisFormatter, formatMilliseconds } from '../lib/format.ts';
 import type { MetricSeries } from '../api/types.ts';
 
 const LATENCY_SERIES = [
@@ -40,6 +40,8 @@ interface LatencyChartProps {
 
 export function LatencyChart({ series, hint }: LatencyChartProps) {
   const rows = toChartRows(series);
+  const peak = Math.max(0, ...series.flatMap((entry) => entry.points.map((point) => point.value)));
+  const tickFormatter = durationAxisFormatter(peak);
 
   return (
     <ChartFrame title="Latency" hint={hint} isEmpty={!hasAnyPoints(series)}>
@@ -56,12 +58,7 @@ export function LatencyChart({ series, hint }: LatencyChartProps) {
             stroke={GRID_COLOR}
             minTickGap={40}
           />
-          <YAxis
-            tick={AXIS_TICK}
-            stroke={GRID_COLOR}
-            width={56}
-            tickFormatter={(value: number) => formatMilliseconds(value)}
-          />
+          <YAxis tick={AXIS_TICK} stroke={GRID_COLOR} width={56} tickFormatter={tickFormatter} />
           <Tooltip
             cursor={{ stroke: GRID_COLOR, strokeWidth: 1 }}
             content={<ChartTooltip formatValue={formatMilliseconds} labels={LABELS} />}

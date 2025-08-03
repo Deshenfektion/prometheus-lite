@@ -33,11 +33,17 @@ interface ErrorRateChartProps {
   hint?: string;
 }
 
+const thresholdHint = `warning line at ${formatRatioAsPercent(DEFAULT_THRESHOLDS.errorRateWarning, 0)}`;
+
 export function ErrorRateChart({ series, hint }: ErrorRateChartProps) {
   const rows = toChartRows(series);
 
   return (
-    <ChartFrame title="Error rate" hint={hint} isEmpty={!hasAnyPoints(series)}>
+    <ChartFrame
+      title="Error rate"
+      hint={hint === undefined ? thresholdHint : `${hint} · ${thresholdHint}`}
+      isEmpty={!hasAnyPoints(series)}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={CHART_MARGIN}>
           <CartesianGrid stroke={GRID_COLOR} strokeWidth={1} vertical={false} />
@@ -62,12 +68,6 @@ export function ErrorRateChart({ series, hint }: ErrorRateChartProps) {
             y={DEFAULT_THRESHOLDS.errorRateWarning}
             stroke={STATUS_COLORS.warning}
             strokeWidth={1}
-            label={{
-              value: 'warning',
-              position: 'insideTopRight',
-              fill: STATUS_COLORS.warning,
-              fontSize: 10,
-            }}
           />
           <Tooltip
             cursor={{ stroke: GRID_COLOR, strokeWidth: 1 }}

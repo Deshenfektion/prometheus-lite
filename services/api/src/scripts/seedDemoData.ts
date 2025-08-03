@@ -34,7 +34,7 @@ const PROFILES: Profile[] = [
     baseMemory: 51,
     baseThroughput: 240,
     failureRate: 0.004,
-    spikeEvery: 137,
+    spikeEvery: 211,
   },
   {
     slug: 'search-api',
@@ -47,7 +47,7 @@ const PROFILES: Profile[] = [
     baseMemory: 74,
     baseThroughput: 95,
     failureRate: 0.06,
-    spikeEvery: 61,
+    spikeEvery: 173,
   },
   {
     slug: 'billing-worker',
@@ -140,7 +140,7 @@ function buildPoints(
           profile.baseLatencyMs +
             wave(index, 180, profile.latencyJitterMs) +
             (Math.random() - 0.5) * profile.latencyJitterMs +
-            (spiking ? profile.baseLatencyMs * 7 : 0),
+            (spiking ? profile.baseLatencyMs * 3.5 : 0),
           1,
           60_000,
         );

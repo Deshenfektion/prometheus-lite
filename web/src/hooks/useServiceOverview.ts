@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { fetchLatestMetrics, fetchServices } from '../api/endpoints.ts';
-import { deriveHealth } from '../lib/status.ts';
+import { deriveHealth, staleAfterSeconds } from '../lib/status.ts';
 import type { LatestSnapshot, Service } from '../api/types.ts';
 import type { ServiceHealth } from '../lib/status.ts';
 
@@ -42,7 +42,10 @@ export function useServiceOverview(refreshIntervalMs: number): ServiceOverview {
 
     return registered.map((service) => {
       const snapshot = snapshots.get(service.slug);
-      return { service, snapshot, health: deriveHealth(snapshot) };
+      const health = deriveHealth(snapshot, {
+        staleAfter: staleAfterSeconds(service.pollIntervalSeconds),
+      });
+      return { service, snapshot, health };
     });
   }, [services.data, latest.data]);
 

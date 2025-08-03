@@ -2,7 +2,12 @@ import type { LatestSnapshot } from '../api/types.ts';
 
 export type HealthStatus = 'OK' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
 
-export const STALE_AFTER_SECONDS = 120;
+export const MIN_STALE_AFTER_SECONDS = 60;
+export const STALE_INTERVAL_MULTIPLIER = 6;
+
+export function staleAfterSeconds(pollIntervalSeconds: number): number {
+  return Math.max(pollIntervalSeconds * STALE_INTERVAL_MULTIPLIER, MIN_STALE_AFTER_SECONDS);
+}
 
 export interface ServiceHealth {
   status: HealthStatus;
@@ -60,11 +65,19 @@ function newestTimestamp(snapshot: LatestSnapshot | undefined): string | undefin
   return newest;
 }
 
+export interface HealthOptions {
+  thresholds?: HealthThresholds;
+  staleAfter?: number;
+  now?: number;
+}
+
 export function deriveHealth(
   snapshot: LatestSnapshot | undefined,
-  thresholds: HealthThresholds = DEFAULT_THRESHOLDS,
-  now: number = Date.now(),
+  options: HealthOptions = {},
 ): ServiceHealth {
+  const thresholds = options.thresholds ?? DEFAULT_THRESHOLDS;
+  const now = options.now ?? Date.now();
+  const staleAfter = options.staleAfter ?? MIN_STALE_AFTER_SECONDS;
   const lastSeen = newestTimestamp(snapshot);
 
   if (snapshot === undefined || lastSeen === undefined) {
@@ -72,7 +85,7 @@ export function deriveHealth(
   }
 
   const ageSeconds = (now - new Date(lastSeen).getTime()) / 1000;
-  if (ageSeconds > STALE_AFTER_SECONDS) {
+  if (ageSeconds > staleAfter) {
     return { status: 'UNKNOWN', reasons: ['no recent snapshots'], lastSeen };
   }
 
