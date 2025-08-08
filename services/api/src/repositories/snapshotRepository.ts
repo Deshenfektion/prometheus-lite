@@ -1,6 +1,7 @@
 import type { Queryable } from '../db/queryable.js';
 import { pool } from '../db/pool.js';
 import type { MetricPoint } from '../types/metrics.js';
+import type { Aggregation } from '../types/alerts.js';
 import type {
   AggregateRequest,
   AggregatedRow,
@@ -10,6 +11,27 @@ import type {
 } from '../types/query.js';
 
 export const INSERT_CHUNK_SIZE = 5_000;
+
+const AGGREGATE_EXPRESSIONS: Record<Aggregation, string> = {
+  avg: 'avg(value)',
+  max: 'max(value)',
+  min: 'min(value)',
+  last: 'max(value)',
+};
+
+export interface WindowAggregateRequest {
+  metricId: number;
+  aggregation: Aggregation;
+  from: Date;
+  to: Date;
+  serviceIds?: number[];
+}
+
+export interface WindowAggregateRow {
+  serviceId: number;
+  value: number;
+  samples: number;
+}
 
 const INSERT_CHUNK = `
   INSERT INTO metric_snapshots (service_id, metric_id, recorded_at, value)
@@ -151,6 +173,45 @@ export class SnapshotRepository {
       average: row.average,
       minimum: row.minimum,
       maximum: row.maximum,
+      samples: row.samples,
+    }));
+  }
+
+  async windowAggregate(request: WindowAggregateRequest): Promise<WindowAggregateRow[]> {
+    const expression = AGGREGATE_EXPRESSIONS[request.aggregation];
+
+    if (request.aggregation === 'last') {
+      const result = await this.db.query<{ service_id: number; value: number; samples: number }>(
+        `SELECT DISTINCT ON (service_id) service_id, value, 1::bigint AS samples
+           FROM metric_snapshots
+          WHERE metric_id = $1
+            AND recorded_at >= $2
+            AND recorded_at < $3
+            AND ($4::bigint[] IS NULL OR service_id = ANY($4::bigint[]))
+          ORDER BY service_id, recorded_at DESC`,
+        [request.metricId, request.from, request.to, request.serviceIds ?? null],
+      );
+      return result.rows.map((row) => ({
+        serviceId: row.service_id,
+        value: row.value,
+        samples: row.samples,
+      }));
+    }
+
+    const result = await this.db.query<{ service_id: number; value: number; samples: number }>(
+      `SELECT service_id, ${expression} AS value, count(*)::bigint AS samples
+         FROM metric_snapshots
+        WHERE metric_id = $1
+          AND recorded_at >= $2
+          AND recorded_at < $3
+          AND ($4::bigint[] IS NULL OR service_id = ANY($4::bigint[]))
+        GROUP BY service_id`,
+      [request.metricId, request.from, request.to, request.serviceIds ?? null],
+    );
+
+    return result.rows.map((row) => ({
+      serviceId: row.service_id,
+      value: row.value,
       samples: row.samples,
     }));
   }
