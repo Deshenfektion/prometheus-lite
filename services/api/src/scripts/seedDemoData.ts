@@ -195,11 +195,115 @@ function buildPoints(
   return points;
 }
 
+const DEFAULT_RULES: Array<{
+  name: string;
+  description: string;
+  metricKey: string;
+  comparison: 'ABOVE' | 'BELOW';
+  windowSeconds: number;
+  forSeconds: number;
+  warning: number;
+  critical: number;
+}> = [
+  {
+    name: 'Service unreachable',
+    description: 'Some or all probes in the window could not reach the service',
+    metricKey: 'availability',
+    comparison: 'BELOW',
+    windowSeconds: 60,
+    forSeconds: 30,
+    warning: 0.99,
+    critical: 0.5,
+  },
+  {
+    name: 'High p95 latency',
+    description: 'The 95th percentile probe latency is elevated',
+    metricKey: 'latency_p95_ms',
+    comparison: 'ABOVE',
+    windowSeconds: 300,
+    forSeconds: 120,
+    warning: 500,
+    critical: 1500,
+  },
+  {
+    name: 'Elevated error rate',
+    description: 'A meaningful share of probes is failing',
+    metricKey: 'error_rate',
+    comparison: 'ABOVE',
+    windowSeconds: 300,
+    forSeconds: 60,
+    warning: 0.05,
+    critical: 0.25,
+  },
+  {
+    name: 'CPU saturation',
+    description: 'Reported CPU utilisation is close to the limit',
+    metricKey: 'cpu_percent',
+    comparison: 'ABOVE',
+    windowSeconds: 300,
+    forSeconds: 300,
+    warning: 80,
+    critical: 92,
+  },
+  {
+    name: 'Memory saturation',
+    description: 'Reported memory utilisation is close to the limit',
+    metricKey: 'memory_percent',
+    comparison: 'ABOVE',
+    windowSeconds: 300,
+    forSeconds: 300,
+    warning: 80,
+    critical: 92,
+  },
+];
+
+async function ensureDefaultRules(metricIds: Map<string, number>): Promise<number> {
+  let provisioned = 0;
+
+  for (const rule of DEFAULT_RULES) {
+    const metricId = metricIds.get(rule.metricKey);
+    if (metricId === undefined) {
+      continue;
+    }
+
+    await pool.query(
+      `INSERT INTO alert_rules (
+         name, description, service_id, metric_id, comparison, aggregation,
+         window_seconds, for_seconds, warning_threshold, critical_threshold
+       )
+       VALUES ($1, $2, NULL, $3, $4, 'avg', $5, $6, $7, $8)
+       ON CONFLICT (name, COALESCE(service_id, 0)) DO UPDATE SET
+         description        = EXCLUDED.description,
+         comparison         = EXCLUDED.comparison,
+         window_seconds     = EXCLUDED.window_seconds,
+         for_seconds        = EXCLUDED.for_seconds,
+         warning_threshold  = EXCLUDED.warning_threshold,
+         critical_threshold = EXCLUDED.critical_threshold`,
+      [
+        rule.name,
+        rule.description,
+        metricId,
+        rule.comparison,
+        rule.windowSeconds,
+        rule.forSeconds,
+        rule.warning,
+        rule.critical,
+      ],
+    );
+    provisioned += 1;
+  }
+
+  return provisioned;
+}
+
 async function main(): Promise<void> {
   await runMigrations();
 
   const definitions = await metricRepository.list();
   const metricIds = new Map(definitions.map((definition) => [definition.key, definition.id]));
+
+  const rules = await ensureDefaultRules(metricIds);
+  process.stdout.write(`${rules} alert rules provisioned\n`);
 
   const steps = Math.floor(WINDOW_SECONDS / STEP_SECONDS);
   const startedAt = Date.now() - WINDOW_SECONDS * 1000;
