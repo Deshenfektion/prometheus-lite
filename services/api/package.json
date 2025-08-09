@@ -14,7 +14,8 @@
     "benchmark": "tsx src/scripts/benchmarkIngest.ts",
     "create-user": "tsx src/scripts/createUser.ts",
     "lint": "eslint src",
-    "seed": "tsx src/scripts/seedDemoData.ts"
+    "seed": "tsx src/scripts/seedDemoData.ts",
+    "evaluate": "tsx src/scripts/evaluateOnce.ts"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
