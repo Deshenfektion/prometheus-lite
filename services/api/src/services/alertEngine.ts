@@ -9,6 +9,7 @@ import { snapshotRepository } from '../repositories/snapshotRepository.js';
 import type { ServiceDirectory } from './serviceDirectory.js';
 import { serviceDirectory } from './serviceDirectory.js';
 import { describeBreach, evaluateThreshold } from './alertEvaluator.js';
+import { decide } from './alertStateMachine.js';
 import { logger } from '../lib/logger.js';
 import type {
   ActiveAlert,
@@ -158,19 +159,33 @@ export class AlertEngine {
       const key = stateKey(observation.rule.id, observation.serviceId);
       const previous: AlertStateRecord | undefined = existing.get(key);
       const previousState = previous?.state ?? 'OK';
-      const changed = previousState !== observation.state;
 
-      if (changed) {
+      const decision = decide(
+        {
+          state: previousState,
+          since: previous === undefined ? now : new Date(previous.since),
+          pendingState: previous?.pendingState ?? null,
+          pendingSince:
+            previous?.pendingSince === undefined || previous.pendingSince === null
+              ? null
+              : new Date(previous.pendingSince),
+        },
+        observation.state,
+        observation.rule.forSeconds,
+        now,
+      );
+
+      if (decision.changed) {
         transitions.push(await this.applyTransition(observation, previousState, now));
       }
 
       await this.states.upsert({
         ruleId: observation.rule.id,
         serviceId: observation.serviceId,
-        state: observation.state,
-        since: changed ? now : new Date(previous?.since ?? now.toISOString()),
-        pendingState: null,
-        pendingSince: null,
+        state: decision.state,
+        since: decision.since,
+        pendingState: decision.pendingState,
+        pendingSince: decision.pendingSince,
         lastValue: observation.value,
         evaluatedAt: now,
       });
