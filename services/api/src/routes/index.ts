@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authenticateCollector } from '../middleware/authenticate.js';
+import { alertRoutes } from './alertRoutes.js';
 import { authRoutes } from './authRoutes.js';
 import { ingestRoutes } from './ingestRoutes.js';
 import { metricRoutes } from './metricRoutes.js';
@@ -11,3 +12,4 @@ apiRoutes.use('/auth', authRoutes);
 apiRoutes.use('/ingest', authenticateCollector, ingestRoutes);
 apiRoutes.use('/services', authenticate, serviceRoutes);
 apiRoutes.use('/metrics', authenticate, metricRoutes);
+apiRoutes.use('/alerts', authenticate, alertRoutes);
