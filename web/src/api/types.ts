@@ -59,6 +59,55 @@ export interface MetricSeries {
   points: SeriesPoint[];
 }
 
+export type AlertState = 'OK' | 'WARNING' | 'CRITICAL';
+
+export interface ActiveAlert {
+  ruleId: number;
+  ruleName: string;
+  serviceId: number;
+  serviceSlug: string;
+  metricKey: string;
+  state: Exclude<AlertState, 'OK'>;
+  value: number;
+  threshold: number | null;
+  since: string;
+  message: string;
+}
+
+export interface AlertEvent {
+  id: number;
+  ruleId: number;
+  ruleName: string;
+  serviceId: number;
+  serviceSlug: string;
+  metricKey: string;
+  fromState: AlertState;
+  toState: AlertState;
+  value: number;
+  threshold: number | null;
+  message: string;
+  occurredAt: string;
+  resolvedAt: string | null;
+}
+
+export interface AlertRule {
+  id: number;
+  name: string;
+  description: string;
+  serviceId: number | null;
+  metricId: number;
+  metricKey: string;
+  comparison: 'ABOVE' | 'BELOW';
+  aggregation: 'avg' | 'max' | 'min' | 'last';
+  windowSeconds: number;
+  forSeconds: number;
+  warningThreshold: number | null;
+  criticalThreshold: number | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type Role = 'USER' | 'ADMIN';
 
 export interface CurrentUser {

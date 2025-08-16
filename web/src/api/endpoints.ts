@@ -1,5 +1,8 @@
 import { request } from './client.ts';
 import type {
+  ActiveAlert,
+  AlertEvent,
+  AlertRule,
   CurrentUser,
   LatestSnapshot,
   LoginResponse,
@@ -51,4 +54,28 @@ export function fetchMetricHistory(params: HistoryParams): Promise<MetricSeries[
       ...(params.step === undefined ? {} : { step: params.step }),
     },
   });
+}
+
+export function fetchActiveAlerts(): Promise<ActiveAlert[]> {
+  return request<ActiveAlert[]>('/alerts');
+}
+
+export interface AlertEventParams {
+  service?: string;
+  state?: string;
+  limit?: number;
+}
+
+export function fetchAlertEvents(params: AlertEventParams = {}): Promise<AlertEvent[]> {
+  return request<AlertEvent[]>('/alerts/events', {
+    query: {
+      ...(params.service === undefined ? {} : { service: params.service }),
+      ...(params.state === undefined ? {} : { state: params.state }),
+      limit: params.limit ?? 50,
+    },
+  });
+}
+
+export function fetchAlertRules(): Promise<AlertRule[]> {
+  return request<AlertRule[]>('/alerts/rules');
 }
