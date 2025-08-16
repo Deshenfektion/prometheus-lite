@@ -20,6 +20,9 @@ vi.mock('../api/endpoints.ts', () => ({
   fetchLatestMetrics: vi.fn().mockResolvedValue([]),
   fetchMetricHistory: vi.fn().mockResolvedValue([]),
   fetchMetricDefinitions: vi.fn().mockResolvedValue([]),
+  fetchActiveAlerts: vi.fn().mockResolvedValue([]),
+  fetchAlertEvents: vi.fn().mockResolvedValue([]),
+  fetchAlertRules: vi.fn().mockResolvedValue([]),
 }));
 
 const USER: CurrentUser = {

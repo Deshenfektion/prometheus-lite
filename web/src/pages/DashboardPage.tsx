@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ActiveAlertsBanner } from '../components/ActiveAlertsBanner.tsx';
 import { PageHeading } from '../components/PageHeading.tsx';
 import { OverviewFilters } from '../components/OverviewFilters.tsx';
 import { ServiceCard } from '../components/ServiceCard.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { filterServices } from '../lib/filterServices.ts';
 import { useRefresh } from '../hooks/useRefresh.ts';
+import { useActiveAlerts } from '../hooks/useAlerts.ts';
 import { useServiceOverview } from '../hooks/useServiceOverview.ts';
 import type { OverviewFilterState } from '../components/OverviewFilters.tsx';
 import type { HealthStatus } from '../lib/status.ts';
@@ -38,6 +40,7 @@ function writeFilters(filters: OverviewFilterState): URLSearchParams {
 export function DashboardPage() {
   const { effectiveIntervalMs } = useRefresh();
   const overview = useServiceOverview(effectiveIntervalMs);
+  const { active } = useActiveAlerts(effectiveIntervalMs);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
@@ -68,6 +71,8 @@ export function DashboardPage() {
   return (
     <>
       <PageHeading title="Service overview" subtitle="Health of every registered service" />
+
+      <ActiveAlertsBanner alerts={active} />
 
       <OverviewFilters
         value={filters}

@@ -16,6 +16,9 @@ vi.mock('../api/endpoints.ts', () => ({
   fetchCurrentUser: vi.fn().mockRejectedValue(new Error('anonymous')),
   fetchMetricHistory: vi.fn(),
   fetchMetricDefinitions: vi.fn(),
+  fetchActiveAlerts: vi.fn().mockResolvedValue([]),
+  fetchAlertEvents: vi.fn().mockResolvedValue([]),
+  fetchAlertRules: vi.fn().mockResolvedValue([]),
   login: vi.fn(),
 }));
 
