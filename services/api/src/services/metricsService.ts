@@ -6,6 +6,9 @@ import type { MetricCatalog } from './metricCatalog.js';
 import { metricCatalog } from './metricCatalog.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { chooseStep, snapStep } from '../lib/buckets.js';
+import { detectAnomalies } from './anomalyDetector.js';
+import type { AnomalyOptions } from './anomalyDetector.js';
+import type { Anomaly } from './anomalyDetector.js';
 import type { MetricDefinition } from '../types/metrics.js';
 import type {
   AggregateRequest,
@@ -25,6 +28,10 @@ export interface HistoryOptions {
   to?: Date;
   limit?: number;
   stepSeconds?: number;
+}
+
+export interface AnnotatedSeries extends MetricSeries {
+  anomalies: Anomaly[];
 }
 
 export interface LatestSnapshot {
@@ -146,6 +153,18 @@ export class MetricsService {
       unit: definition.unit,
       stepSeconds,
       points: pointsByMetric.get(definition.id) ?? [],
+    }));
+  }
+
+  async historyWithAnomalies(
+    options: HistoryOptions,
+    detection: Partial<AnomalyOptions> = {},
+  ): Promise<AnnotatedSeries[]> {
+    const series = await this.history(options);
+
+    return series.map((entry) => ({
+      ...entry,
+      anomalies: detectAnomalies(entry.points, detection),
     }));
   }
 

@@ -34,6 +34,34 @@ export async function getLatestMetrics(_req: Request, res: Response): Promise<vo
   res.json({ data: latest });
 }
 
+const anomalyQuery = historyQuery.extend({
+  window: z.coerce.number().int().min(5).max(500).optional(),
+  threshold: z.coerce.number().min(1).max(20).optional(),
+  method: z.enum(['zscore', 'modified-zscore']).optional(),
+});
+
+export async function getMetricAnomalies(req: Request, res: Response): Promise<void> {
+  const params = parseQuery(anomalyQuery, req);
+
+  const series = await metricsService.historyWithAnomalies(
+    {
+      slug: params.service,
+      ...(params.metrics === undefined ? {} : { metricKeys: params.metrics }),
+      ...(params.from === undefined ? {} : { from: params.from }),
+      ...(params.to === undefined ? {} : { to: params.to }),
+      ...(params.limit === undefined ? {} : { limit: params.limit }),
+      ...(params.step === undefined ? {} : { stepSeconds: params.step }),
+    },
+    {
+      ...(params.window === undefined ? {} : { windowSize: params.window }),
+      ...(params.threshold === undefined ? {} : { threshold: params.threshold }),
+      ...(params.method === undefined ? {} : { method: params.method }),
+    },
+  );
+
+  res.json({ data: series });
+}
+
 export async function getMetricHistory(req: Request, res: Response): Promise<void> {
   const params = parseQuery(historyQuery, req);
   const series = await metricsService.history({
