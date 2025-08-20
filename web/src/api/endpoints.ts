@@ -1,6 +1,7 @@
 import { request } from './client.ts';
 import type {
   ActiveAlert,
+  AnnotatedSeries,
   AlertEvent,
   AlertRule,
   CurrentUser,
@@ -52,6 +53,24 @@ export function fetchMetricHistory(params: HistoryParams): Promise<MetricSeries[
       ...(params.from === undefined ? {} : { from: params.from }),
       ...(params.to === undefined ? {} : { to: params.to }),
       ...(params.step === undefined ? {} : { step: params.step }),
+    },
+  });
+}
+
+export interface AnomalyParams extends HistoryParams {
+  window?: number;
+  threshold?: number;
+}
+
+export function fetchMetricAnomalies(params: AnomalyParams): Promise<AnnotatedSeries[]> {
+  return request<AnnotatedSeries[]>('/metrics/anomalies', {
+    query: {
+      service: params.service,
+      ...(params.metrics === undefined ? {} : { metrics: params.metrics.join(',') }),
+      ...(params.from === undefined ? {} : { from: params.from }),
+      ...(params.to === undefined ? {} : { to: params.to }),
+      ...(params.window === undefined ? {} : { window: params.window }),
+      ...(params.threshold === undefined ? {} : { threshold: params.threshold }),
     },
   });
 }

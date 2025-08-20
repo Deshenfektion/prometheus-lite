@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMetricHistory } from '../api/endpoints.ts';
-import type { MetricSeries } from '../api/types.ts';
+import { fetchMetricAnomalies } from '../api/endpoints.ts';
+import type { AnnotatedSeries } from '../api/types.ts';
 
 export interface MetricHistoryOptions {
   service: string;
@@ -11,7 +11,7 @@ export interface MetricHistoryOptions {
 }
 
 export interface MetricHistoryResult {
-  series: MetricSeries[];
+  series: AnnotatedSeries[];
   stepSeconds: number | null;
   isLoading: boolean;
   isFetching: boolean;
@@ -24,7 +24,7 @@ export function useMetricHistory(options: MetricHistoryOptions): MetricHistoryRe
   const query = useQuery({
     queryKey: ['metrics', 'history', service, metrics.join(','), windowSeconds],
     queryFn: () =>
-      fetchMetricHistory({
+      fetchMetricAnomalies({
         service,
         metrics,
         from: new Date(Date.now() - windowSeconds * 1000).toISOString(),

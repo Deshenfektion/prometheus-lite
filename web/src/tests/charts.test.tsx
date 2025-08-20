@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { LatencyChart } from '../charts/LatencyChart.tsx';
 import { hasAnyPoints, seriesByMetric, toChartRows } from '../charts/seriesData.ts';
-import type { MetricSeries } from '../api/types.ts';
+import type { AnnotatedSeries } from '../api/types.ts';
 
-function series(metric: string, values: Array<[string, number]>): MetricSeries {
+function series(metric: string, values: Array<[string, number]>): AnnotatedSeries {
   return {
     service: 'checkout-api',
     metric,
     unit: 'milliseconds',
     stepSeconds: 60,
     points: values.map(([recordedAt, value]) => ({ recordedAt, value })),
+    anomalies: [],
   };
 }
 
@@ -64,6 +65,41 @@ describe('series helpers', () => {
     const all = [series('latency_avg_ms', []), series('latency_p95_ms', [])];
     expect(seriesByMetric(all, 'latency_p95_ms')?.metric).toBe('latency_p95_ms');
     expect(seriesByMetric(all, 'cpu_percent')).toBeUndefined();
+  });
+});
+
+describe('LatencyChart anomalies', () => {
+  it('mentions marked outliers in the chart hint', () => {
+    const withOutlier: AnnotatedSeries = {
+      ...series('latency_p95_ms', [
+        ['2025-04-29T12:00:00.000Z', 40],
+        ['2025-04-29T12:01:00.000Z', 5000],
+      ]),
+      anomalies: [
+        {
+          recordedAt: '2025-04-29T12:01:00.000Z',
+          value: 5000,
+          score: 12.4,
+          baseline: 42,
+          direction: 'above',
+        },
+      ],
+    };
+
+    render(<LatencyChart series={[withOutlier]} hint="10s buckets" />);
+
+    expect(screen.getByText('10s buckets · 1 p95 outlier marked')).toBeInTheDocument();
+  });
+
+  it('says nothing about outliers when there are none', () => {
+    render(
+      <LatencyChart
+        series={[series('latency_p95_ms', [['2025-04-29T12:00:00.000Z', 40]])]}
+        hint="10s buckets"
+      />,
+    );
+
+    expect(screen.getByText('10s buckets')).toBeInTheDocument();
   });
 });
 

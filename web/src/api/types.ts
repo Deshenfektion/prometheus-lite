@@ -59,6 +59,18 @@ export interface MetricSeries {
   points: SeriesPoint[];
 }
 
+export interface Anomaly {
+  recordedAt: string;
+  value: number;
+  score: number;
+  baseline: number;
+  direction: 'above' | 'below';
+}
+
+export interface AnnotatedSeries extends MetricSeries {
+  anomalies: Anomaly[];
+}
+
 export type AlertState = 'OK' | 'WARNING' | 'CRITICAL';
 
 export interface ActiveAlert {
