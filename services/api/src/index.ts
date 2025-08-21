@@ -4,6 +4,7 @@ import { runMigrations } from './db/migrate.js';
 import { closePool } from './db/pool.js';
 import { logger } from './lib/logger.js';
 import { createAlertScheduler } from './scheduler/alertScheduler.js';
+import { createRetentionScheduler } from './scheduler/retentionScheduler.js';
 
 const executed = await runMigrations();
 if (executed.length > 0) {
@@ -12,7 +13,10 @@ if (executed.length > 0) {
 
 const app = createApp();
 
-const schedulers = env.ALERT_EVALUATION_ENABLED ? [createAlertScheduler()] : [];
+const schedulers = [
+  ...(env.ALERT_EVALUATION_ENABLED ? [createAlertScheduler()] : []),
+  ...(env.RETENTION_ENABLED ? [createRetentionScheduler()] : []),
+];
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'api listening');
