@@ -98,11 +98,18 @@ export class SnapshotRepository {
       recorded_at: Date;
       value: number;
     }>(
-      `SELECT DISTINCT ON (service_id, metric_id)
-              service_id, metric_id, recorded_at, value
-         FROM metric_snapshots
-        WHERE service_id = ANY($1::bigint[])
-        ORDER BY service_id, metric_id, recorded_at DESC`,
+      `SELECT sv.id AS service_id, m.id AS metric_id, latest.recorded_at, latest.value
+         FROM services sv
+         CROSS JOIN metrics m
+         CROSS JOIN LATERAL (
+           SELECT recorded_at, value
+             FROM metric_snapshots ms
+            WHERE ms.service_id = sv.id
+              AND ms.metric_id = m.id
+            ORDER BY ms.recorded_at DESC
+            LIMIT 1
+         ) latest
+        WHERE sv.id = ANY($1::bigint[])`,
       [serviceIds],
     );
 
