@@ -3,18 +3,17 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DashboardPage } from '../pages/DashboardPage.tsx';
 import { renderWithProviders } from './renderWithProviders.tsx';
-import type { LatestSnapshot, Service } from '../api/types.ts';
+import type { DashboardService, DashboardSummary, HealthStatus } from '../api/types.ts';
 
-const { fetchServices, fetchLatestMetrics } = vi.hoisted(() => ({
-  fetchServices: vi.fn(),
-  fetchLatestMetrics: vi.fn(),
-}));
+const { fetchDashboard } = vi.hoisted(() => ({ fetchDashboard: vi.fn() }));
 
 vi.mock('../api/endpoints.ts', () => ({
-  fetchServices,
-  fetchLatestMetrics,
+  fetchDashboard,
+  fetchServices: vi.fn(),
+  fetchLatestMetrics: vi.fn(),
   fetchCurrentUser: vi.fn().mockRejectedValue(new Error('anonymous')),
   fetchMetricHistory: vi.fn(),
+  fetchMetricAnomalies: vi.fn(),
   fetchMetricDefinitions: vi.fn(),
   fetchActiveAlerts: vi.fn().mockResolvedValue([]),
   fetchAlertEvents: vi.fn().mockResolvedValue([]),
@@ -22,44 +21,54 @@ vi.mock('../api/endpoints.ts', () => ({
   login: vi.fn(),
 }));
 
-function service(slug: string, environment = 'production'): Service {
-  return {
-    id: 1,
-    slug,
-    displayName: slug.replace('-', ' '),
-    baseUrl: `http://${slug}:8080`,
-    healthPath: '/health',
-    environment,
-    pollIntervalSeconds: 10,
-    timeoutMs: 2000,
-    enabled: true,
-    createdAt: '2025-03-01T10:00:00.000Z',
-    updatedAt: '2025-03-01T10:00:00.000Z',
-  };
-}
-
-function snapshot(slug: string, metrics: Record<string, number>): LatestSnapshot {
+function service(
+  slug: string,
+  status: HealthStatus,
+  metrics: Record<string, number>,
+  environment = 'production',
+): DashboardService {
   const recordedAt = new Date().toISOString();
   return {
-    service: slug,
+    slug,
+    displayName: slug.replace('-', ' '),
+    environment,
+    enabled: true,
+    pollIntervalSeconds: 10,
+    status,
+    reasons: [],
+    lastSeen: recordedAt,
     metrics: Object.fromEntries(
       Object.entries(metrics).map(([key, value]) => [key, { value, recordedAt }]),
     ),
   };
 }
 
+function summary(services: DashboardService[]): DashboardSummary {
+  return {
+    generatedAt: new Date().toISOString(),
+    totals: {
+      services: services.length,
+      ok: services.filter((entry) => entry.status === 'OK').length,
+      warning: services.filter((entry) => entry.status === 'WARNING').length,
+      critical: services.filter((entry) => entry.status === 'CRITICAL').length,
+      unknown: services.filter((entry) => entry.status === 'UNKNOWN').length,
+      activeAlerts: 0,
+      criticalAlerts: 0,
+    },
+    services,
+    alerts: [],
+  };
+}
+
 describe('DashboardPage', () => {
   beforeEach(() => {
-    fetchServices.mockResolvedValue([
-      service('checkout-api'),
-      service('search-api', 'staging'),
-      service('billing-worker'),
-    ]);
-    fetchLatestMetrics.mockResolvedValue([
-      snapshot('checkout-api', { availability: 1, latency_p95_ms: 120, error_rate: 0 }),
-      snapshot('search-api', { availability: 1, latency_p95_ms: 900, error_rate: 0.08 }),
-      snapshot('billing-worker', { availability: 0, latency_ms: 3000 }),
-    ]);
+    fetchDashboard.mockResolvedValue(
+      summary([
+        service('checkout-api', 'OK', { latency_p95_ms: 120, error_rate: 0 }),
+        service('search-api', 'WARNING', { latency_p95_ms: 900, error_rate: 0.08 }, 'staging'),
+        service('billing-worker', 'CRITICAL', { latency_ms: 3000 }),
+      ]),
+    );
   });
 
   it('renders a card for every registered service', async () => {
@@ -70,7 +79,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('billing worker')).toBeInTheDocument();
   });
 
-  it('shows the derived health of each service', async () => {
+  it('shows the status the API derived for each service', async () => {
     const { container } = renderWithProviders(<DashboardPage />);
     await screen.findByText('checkout api');
 
@@ -123,14 +132,13 @@ describe('DashboardPage', () => {
     await user.selectOptions(screen.getByLabelText('Health status'), 'CRITICAL');
 
     await waitFor(() => {
-      expect(screen.getByText('billing worker')).toBeInTheDocument();
+      expect(screen.queryByText('search api')).not.toBeInTheDocument();
     });
-    expect(screen.queryByText('search api')).not.toBeInTheDocument();
+    expect(screen.getByText('billing worker')).toBeInTheDocument();
   });
 
   it('explains an empty registry', async () => {
-    fetchServices.mockResolvedValue([]);
-    fetchLatestMetrics.mockResolvedValue([]);
+    fetchDashboard.mockResolvedValue(summary([]));
 
     renderWithProviders(<DashboardPage />);
 
@@ -138,7 +146,7 @@ describe('DashboardPage', () => {
   });
 
   it('surfaces an API failure', async () => {
-    fetchServices.mockRejectedValue(new Error('database unavailable'));
+    fetchDashboard.mockRejectedValue(new Error('database unavailable'));
 
     renderWithProviders(<DashboardPage />);
 

@@ -32,6 +32,7 @@ const envSchema = z.object({
   RETENTION_EVENT_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
   RETENTION_CHUNK_SIZE: z.coerce.number().int().min(100).max(100_000).default(10_000),
   RETENTION_MAX_CHUNKS: z.coerce.number().int().min(1).max(1000).default(50),
+  DASHBOARD_CACHE_TTL_MS: z.coerce.number().int().min(0).max(60_000).default(3_000),
 });
 
 export type Env = z.infer<typeof envSchema>;

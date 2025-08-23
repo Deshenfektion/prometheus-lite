@@ -1,6 +1,7 @@
 import { request } from './client.ts';
 import type {
   ActiveAlert,
+  DashboardSummary,
   AnnotatedSeries,
   AlertEvent,
   AlertRule,
@@ -73,6 +74,10 @@ export function fetchMetricAnomalies(params: AnomalyParams): Promise<AnnotatedSe
       ...(params.threshold === undefined ? {} : { threshold: params.threshold }),
     },
   });
+}
+
+export function fetchDashboard(): Promise<DashboardSummary> {
+  return request<DashboardSummary>('/dashboard');
 }
 
 export function fetchActiveAlerts(): Promise<ActiveAlert[]> {

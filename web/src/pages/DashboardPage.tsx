@@ -7,10 +7,9 @@ import { ServiceCard } from '../components/ServiceCard.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { filterServices } from '../lib/filterServices.ts';
 import { useRefresh } from '../hooks/useRefresh.ts';
-import { useActiveAlerts } from '../hooks/useAlerts.ts';
-import { useServiceOverview } from '../hooks/useServiceOverview.ts';
+import { useDashboard } from '../hooks/useDashboard.ts';
 import type { OverviewFilterState } from '../components/OverviewFilters.tsx';
-import type { HealthStatus } from '../lib/status.ts';
+import type { HealthStatus } from '../api/types.ts';
 
 const STATUSES: HealthStatus[] = ['OK', 'WARNING', 'CRITICAL', 'UNKNOWN'];
 
@@ -39,14 +38,16 @@ function writeFilters(filters: OverviewFilterState): URLSearchParams {
 
 export function DashboardPage() {
   const { effectiveIntervalMs } = useRefresh();
-  const overview = useServiceOverview(effectiveIntervalMs);
-  const { active } = useActiveAlerts(effectiveIntervalMs);
+  const dashboard = useDashboard(effectiveIntervalMs);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
-  const visible = useMemo(() => filterServices(overview.rows, filters), [overview.rows, filters]);
+  const visible = useMemo(
+    () => filterServices(dashboard.summary.services, filters),
+    [dashboard.summary.services, filters],
+  );
 
-  if (overview.isLoading) {
+  if (dashboard.isLoading) {
     return (
       <>
         <PageHeading title="Service overview" />
@@ -55,13 +56,13 @@ export function DashboardPage() {
     );
   }
 
-  if (overview.error !== null) {
+  if (dashboard.error !== null) {
     return (
       <>
         <PageHeading title="Service overview" />
         <StateMessage
           title="Could not load services"
-          detail={overview.error.message}
+          detail={dashboard.error.message}
           tone="critical"
         />
       </>
@@ -72,19 +73,19 @@ export function DashboardPage() {
     <>
       <PageHeading title="Service overview" subtitle="Health of every registered service" />
 
-      <ActiveAlertsBanner alerts={active} />
+      <ActiveAlertsBanner alerts={dashboard.summary.alerts} />
 
       <OverviewFilters
         value={filters}
-        environments={overview.environments}
+        environments={dashboard.environments}
         matched={visible.length}
-        total={overview.rows.length}
+        total={dashboard.summary.totals.services}
         onChange={(next) => {
           setSearchParams(writeFilters(next), { replace: true });
         }}
       />
 
-      {overview.rows.length === 0 ? (
+      {dashboard.summary.services.length === 0 ? (
         <StateMessage
           title="No services registered"
           detail="Register a service through POST /api/v1/services to start collecting."
@@ -96,13 +97,8 @@ export function DashboardPage() {
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {visible.map((row) => (
-            <ServiceCard
-              key={row.service.slug}
-              service={row.service}
-              snapshot={row.snapshot}
-              health={row.health}
-            />
+          {visible.map((service) => (
+            <ServiceCard key={service.slug} service={service} />
           ))}
         </div>
       )}

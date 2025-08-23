@@ -8,14 +8,11 @@ import {
   formatRatioAsPercent,
   formatRelativeTime,
 } from '../lib/format.ts';
-import { DEFAULT_THRESHOLDS, readValue } from '../lib/status.ts';
-import type { LatestSnapshot, Service } from '../api/types.ts';
-import type { ServiceHealth } from '../lib/status.ts';
+import { DEFAULT_THRESHOLDS } from '../lib/status.ts';
+import type { DashboardService } from '../api/types.ts';
 
-interface ServiceCardProps {
-  service: Service;
-  snapshot: LatestSnapshot | undefined;
-  health: ServiceHealth;
+function reading(service: DashboardService, key: string): number | undefined {
+  return service.metrics[key]?.value;
 }
 
 function latencyTone(value: number | undefined): 'default' | 'warning' | 'critical' {
@@ -38,9 +35,9 @@ function errorTone(value: number | undefined): 'default' | 'warning' | 'critical
   return value >= DEFAULT_THRESHOLDS.errorRateWarning ? 'warning' : 'default';
 }
 
-export function ServiceCard({ service, snapshot, health }: ServiceCardProps) {
-  const p95 = readValue(snapshot, 'latency_p95_ms');
-  const errorRate = readValue(snapshot, 'error_rate');
+export function ServiceCard({ service }: { service: DashboardService }) {
+  const p95 = reading(service, 'latency_p95_ms');
+  const errorRate = reading(service, 'error_rate');
 
   return (
     <Link
@@ -52,13 +49,13 @@ export function ServiceCard({ service, snapshot, health }: ServiceCardProps) {
           <h2 className="truncate text-sm font-semibold">{service.displayName}</h2>
           <p className="truncate font-mono text-xs text-ink-faint">{service.slug}</p>
         </div>
-        <StatusBadge status={health.status} />
+        <StatusBadge status={service.status} />
       </div>
 
       <dl className="mt-4 grid grid-cols-3 gap-3">
         <MetricStat
           label="p95"
-          value={formatMilliseconds(p95 ?? readValue(snapshot, 'latency_ms'))}
+          value={formatMilliseconds(p95 ?? reading(service, 'latency_ms'))}
           tone={latencyTone(p95)}
         />
         <MetricStat
@@ -66,18 +63,21 @@ export function ServiceCard({ service, snapshot, health }: ServiceCardProps) {
           value={formatRatioAsPercent(errorRate)}
           tone={errorTone(errorRate)}
         />
-        <MetricStat label="rps" value={formatRate(readValue(snapshot, 'throughput_rps'))} />
-        <MetricStat label="cpu" value={formatPercent(readValue(snapshot, 'cpu_percent'), 0)} />
-        <MetricStat
-          label="memory"
-          value={formatPercent(readValue(snapshot, 'memory_percent'), 0)}
-        />
-        <MetricStat label="avg" value={formatMilliseconds(readValue(snapshot, 'latency_avg_ms'))} />
+        <MetricStat label="rps" value={formatRate(reading(service, 'throughput_rps'))} />
+        <MetricStat label="cpu" value={formatPercent(reading(service, 'cpu_percent'), 0)} />
+        <MetricStat label="memory" value={formatPercent(reading(service, 'memory_percent'), 0)} />
+        <MetricStat label="avg" value={formatMilliseconds(reading(service, 'latency_avg_ms'))} />
       </dl>
+
+      {service.reasons.length > 0 && (
+        <p className="mt-3 truncate text-xs text-ink-muted" title={service.reasons.join('; ')}>
+          {service.reasons[0]}
+        </p>
+      )}
 
       <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs text-ink-faint">
         <span className="rounded bg-surface-raised px-1.5 py-0.5">{service.environment}</span>
-        <span>{formatRelativeTime(health.lastSeen)}</span>
+        <span>{formatRelativeTime(service.lastSeen ?? undefined)}</span>
       </div>
     </Link>
   );

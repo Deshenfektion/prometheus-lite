@@ -120,6 +120,42 @@ export interface AlertRule {
   updatedAt: string;
 }
 
+export type HealthStatus = AlertState | 'UNKNOWN';
+
+export interface DashboardReading {
+  value: number;
+  recordedAt: string;
+}
+
+export interface DashboardService {
+  slug: string;
+  displayName: string;
+  environment: string;
+  enabled: boolean;
+  pollIntervalSeconds: number;
+  status: HealthStatus;
+  reasons: string[];
+  lastSeen: string | null;
+  metrics: Record<string, DashboardReading | undefined>;
+}
+
+export interface DashboardTotals {
+  services: number;
+  ok: number;
+  warning: number;
+  critical: number;
+  unknown: number;
+  activeAlerts: number;
+  criticalAlerts: number;
+}
+
+export interface DashboardSummary {
+  generatedAt: string;
+  totals: DashboardTotals;
+  services: DashboardService[];
+  alerts: ActiveAlert[];
+}
+
 export type Role = 'USER' | 'ADMIN';
 
 export interface CurrentUser {

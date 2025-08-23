@@ -1,4 +1,4 @@
-import type { HealthStatus } from '../lib/status.ts';
+import type { HealthStatus } from '../api/types.ts';
 
 export interface OverviewFilterState {
   search: string;

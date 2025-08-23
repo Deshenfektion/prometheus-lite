@@ -1,4 +1,4 @@
-import type { HealthStatus } from '../lib/status.ts';
+import type { HealthStatus } from '../api/types.ts';
 
 const STYLES: Record<HealthStatus, { dot: string; text: string; label: string }> = {
   OK: { dot: 'bg-ok', text: 'text-ok', label: 'Healthy' },
