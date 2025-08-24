@@ -1,0 +1,125 @@
+name: prometheus-lite
+
+x-target-defaults: &target-defaults
+  build:
+    context: .
+    dockerfile: demo-targets/Dockerfile
+  restart: unless-stopped
+  networks: [monitoring]
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prometheus_lite}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prometheus_lite}
+      POSTGRES_DB: ${POSTGRES_DB:-prometheus_lite}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-prometheus_lite}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [monitoring]
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-prometheus_lite}:${POSTGRES_PASSWORD:-prometheus_lite}@postgres:5432/${POSTGRES_DB:-prometheus_lite}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      INGEST_TOKEN: ${INGEST_TOKEN:?set INGEST_TOKEN in .env}
+      ALERT_EVALUATION_INTERVAL_SECONDS: ${ALERT_EVALUATION_INTERVAL_SECONDS:-30}
+      RETENTION_SNAPSHOT_DAYS: ${RETENTION_SNAPSHOT_DAYS:-14}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '${API_PORT:-4000}:4000'
+    restart: unless-stopped
+    networks: [monitoring]
+
+  collector:
+    build:
+      context: .
+      dockerfile: services/collector/Dockerfile
+    environment:
+      COLLECTOR_NAME: collector-1
+      COLLECTOR_API_BASE_URL: http://api:4000
+      COLLECTOR_API_TOKEN: ${INGEST_TOKEN:?set INGEST_TOKEN in .env}
+      COLLECTOR_CONFIG_FILE: /app/collector.yaml
+      COLLECTOR_LOG_LEVEL: ${LOG_LEVEL:-info}
+      COLLECTOR_LOG_JSON: 'true'
+      COLLECTOR_BUFFER_DIR: /var/lib/collector/buffer
+    volumes:
+      - ./deploy/collector.docker.yaml:/app/collector.yaml:ro
+      - collector-buffer:/var/lib/collector/buffer
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks: [monitoring]
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - '${WEB_PORT:-8080}:80'
+    restart: unless-stopped
+    networks: [monitoring]
+
+  checkout-api:
+    <<: *target-defaults
+    environment:
+      PORT: 8080
+      TARGET_NAME: checkout-api
+      BASE_LATENCY_MS: 45
+      JITTER_MS: 18
+      FAILURE_RATE: '0.004'
+      BASE_CPU: 34
+      BASE_MEMORY: 52
+      BASE_RPS: 240
+
+  search-api:
+    <<: *target-defaults
+    environment:
+      PORT: 8080
+      TARGET_NAME: search-api
+      BASE_LATENCY_MS: 300
+      JITTER_MS: 140
+      FAILURE_RATE: '0.06'
+      SPIKE_RATE: '0.03'
+      BASE_CPU: 62
+      BASE_MEMORY: 74
+      BASE_RPS: 95
+
+  billing-worker:
+    <<: *target-defaults
+    environment:
+      PORT: 8080
+      TARGET_NAME: billing-worker
+      BASE_LATENCY_MS: 90
+      JITTER_MS: 25
+      FAILURE_RATE: '0.01'
+      BASE_CPU: 22
+      BASE_MEMORY: 44
+      BASE_RPS: 12
+
+volumes:
+  postgres-data:
+  collector-buffer:
+
+networks:
+  monitoring:
+    driver: bridge
