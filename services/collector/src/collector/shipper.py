@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -13,6 +14,7 @@ from tenacity import (
     wait_exponential_jitter,
 )
 
+from collector.buffer import DiskBuffer
 from collector.logging_setup import get_logger
 from collector.models import MetricSnapshot, SnapshotBatch
 
@@ -34,6 +36,8 @@ class ShipperStats:
     batches_sent: int = 0
     snapshots_sent: int = 0
     snapshots_dropped: int = 0
+    snapshots_buffered: int = 0
+    snapshots_replayed: int = 0
     send_failures: int = 0
 
 
@@ -47,11 +51,16 @@ class SnapshotShipper:
     max_wait_seconds: float = 2.0
     max_queue_size: int = 10_000
     max_attempts: int = 4
+    buffer_dir: Path | None = None
+    replay_interval_seconds: float = 15.0
     stats: ShipperStats = field(default_factory=ShipperStats)
+    buffer: DiskBuffer | None = field(init=False, default=None)
     _queue: asyncio.Queue[MetricSnapshot] = field(init=False)
 
     def __post_init__(self) -> None:
         self._queue = asyncio.Queue(maxsize=self.max_queue_size)
+        if self.buffer_dir is not None:
+            self.buffer = DiskBuffer(directory=self.buffer_dir)
 
     @property
     def endpoint(self) -> str:
@@ -129,6 +138,7 @@ class SnapshotShipper:
         except (TransientIngestError, RetryError) as error:
             self.stats.send_failures += 1
             log.error("batch_send_failed", size=len(snapshots), error=str(error))
+            self._buffer_batch(snapshots)
             return False
         except PermanentIngestError as error:
             self.stats.send_failures += 1
@@ -149,6 +159,57 @@ class SnapshotShipper:
             stored_points=result.get("storedPoints"),
         )
         return True
+
+    def _buffer_batch(self, snapshots: list[MetricSnapshot]) -> None:
+        if self.buffer is None:
+            self.stats.snapshots_dropped += len(snapshots)
+            return
+
+        try:
+            self.buffer.spool(snapshots)
+            self.stats.snapshots_buffered += len(snapshots)
+        except OSError as error:
+            self.stats.snapshots_dropped += len(snapshots)
+            log.error("buffer_write_failed", size=len(snapshots), error=str(error))
+
+    async def replay_buffer(self) -> int:
+        if self.buffer is None:
+            return 0
+
+        replayed = 0
+        for path, snapshots in self.buffer.batches():
+            batch = SnapshotBatch(collector=self.collector_name, snapshots=snapshots)
+            try:
+                await self._post(batch)
+            except TransientIngestError:
+                break
+            except PermanentIngestError as error:
+                log.error("buffered_batch_rejected", file=path.name, error=str(error))
+                self.buffer.discard(path)
+                self.stats.snapshots_dropped += len(snapshots)
+                continue
+
+            self.buffer.discard(path)
+            replayed += len(snapshots)
+            self.stats.snapshots_replayed += len(snapshots)
+
+        if replayed > 0:
+            log.info("buffer_replayed", snapshots=replayed)
+
+        return replayed
+
+    async def run_replay(self) -> None:
+        if self.buffer is None:
+            return
+
+        while True:
+            await asyncio.sleep(self.replay_interval_seconds)
+            if self.buffer.pending_files == 0:
+                continue
+            try:
+                await self.replay_buffer()
+            except Exception as error:
+                log.error("buffer_replay_failed", error=str(error))
 
     async def run(self) -> None:
         log.info("shipper_started", endpoint=self.endpoint, max_batch_size=self.max_batch_size)

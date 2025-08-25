@@ -46,6 +46,8 @@ class CollectorSettings(BaseSettings):
     window_max_age_seconds: float = Field(default=300.0, gt=0)
     self_service_slug: str = ""
     self_interval_seconds: float = Field(default=15.0, gt=0)
+    buffer_dir: Path | None = None
+    replay_interval_seconds: float = Field(default=15.0, gt=0)
     log_level: str = "info"
     log_json: bool = False
 

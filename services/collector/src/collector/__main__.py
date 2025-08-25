@@ -32,6 +32,8 @@ async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
             max_wait_seconds=settings.batch_max_wait_seconds,
             max_queue_size=settings.queue_max_size,
             max_attempts=settings.send_max_attempts,
+            buffer_dir=settings.buffer_dir,
+            replay_interval_seconds=settings.replay_interval_seconds,
         )
         assembler = MetricsAssembler(
             probe=HttpProbe(client),
@@ -48,6 +50,7 @@ async def run(settings: CollectorSettings, targets: list[TargetConfig]) -> None:
 
         async with asyncio.TaskGroup() as group:
             group.create_task(shipper.run(), name="shipper")
+            group.create_task(shipper.run_replay(), name="shipper-replay")
             group.create_task(scheduler.run(), name="scheduler")
             if settings.self_service_slug:
                 group.create_task(
