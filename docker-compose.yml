@@ -46,6 +46,24 @@ services:
     restart: unless-stopped
     networks: [monitoring]
 
+  provision:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    command: ['node', 'services/api/dist/scripts/provisionTargets.js']
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-prometheus_lite}:${POSTGRES_PASSWORD:-prometheus_lite}@postgres:5432/${POSTGRES_DB:-prometheus_lite}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      INGEST_TOKEN: ${INGEST_TOKEN:?set INGEST_TOKEN in .env}
+      TARGETS_FILE: /app/deploy/collector.docker.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks: [monitoring]
+
   collector:
     build:
       context: .
@@ -64,6 +82,8 @@ services:
     depends_on:
       api:
         condition: service_started
+      provision:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks: [monitoring]
 

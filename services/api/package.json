@@ -15,7 +15,8 @@
     "create-user": "tsx src/scripts/createUser.ts",
     "lint": "eslint src",
     "seed": "tsx src/scripts/seedDemoData.ts",
-    "evaluate": "tsx src/scripts/evaluateOnce.ts"
+    "evaluate": "tsx src/scripts/evaluateOnce.ts",
+    "provision": "tsx src/scripts/provisionTargets.ts"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
@@ -24,6 +25,7 @@
     "jsonwebtoken": "9.0.2",
     "pg": "8.13.1",
     "pino": "9.6.0",
+    "yaml": "2.7.0",
     "zod": "3.24.1"
   },
   "devDependencies": {

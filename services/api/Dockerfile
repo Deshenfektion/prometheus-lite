@@ -23,6 +23,7 @@ RUN npm ci --workspace services/api --include-workspace-root --omit=dev \
 
 COPY --from=build /app/services/api/dist ./services/api/dist
 COPY db/migrations ./db/migrations
+COPY deploy ./deploy
 
 ENV MIGRATIONS_DIR=/app/db/migrations
 USER app

@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: help up down logs migrate seed admin test lint typecheck
+.PHONY: help up down logs migrate provision seed admin test lint typecheck
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/' | expand -t24
@@ -16,6 +16,9 @@ logs: ## Follow logs from every service
 
 migrate: ## Apply database migrations inside the api container
 	$(COMPOSE) exec api node services/api/dist/db/migrate.js
+
+provision: ## Register the targets declared in deploy/collector.docker.yaml
+	npm run provision --workspace services/api
 
 seed: ## Register the demo services and generate history
 	npm run seed --workspace services/api
