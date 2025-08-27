@@ -1,7 +1,7 @@
 import type { SnapshotRepository } from '../repositories/snapshotRepository.js';
 import { snapshotRepository } from '../repositories/snapshotRepository.js';
-import type { ServiceRepository } from '../repositories/serviceRepository.js';
-import { serviceRepository } from '../repositories/serviceRepository.js';
+import type { ServiceDirectory } from './serviceDirectory.js';
+import { serviceDirectory } from './serviceDirectory.js';
 import type { MetricCatalog } from './metricCatalog.js';
 import { metricCatalog } from './metricCatalog.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
@@ -34,22 +34,17 @@ export interface AnnotatedSeries extends MetricSeries {
   anomalies: Anomaly[];
 }
 
-export interface LatestSnapshot {
-  service: string;
-  metrics: Record<string, { value: number; recordedAt: string }>;
-}
-
 export class MetricsService {
-  private readonly services: ServiceRepository;
+  private readonly directory: ServiceDirectory;
   private readonly snapshots: SnapshotRepository;
   private readonly catalog: MetricCatalog;
 
   constructor(
-    services: ServiceRepository = serviceRepository,
+    directory: ServiceDirectory = serviceDirectory,
     snapshots: SnapshotRepository = snapshotRepository,
     catalog: MetricCatalog = metricCatalog,
   ) {
-    this.services = services;
+    this.directory = directory;
     this.snapshots = snapshots;
     this.catalog = catalog;
   }
@@ -84,39 +79,9 @@ export class MetricsService {
     return resolved;
   }
 
-  async latest(): Promise<LatestSnapshot[]> {
-    const services = await this.services.list();
-    if (services.length === 0) {
-      return [];
-    }
-
-    const definitions = await this.catalog.all();
-    const keyById = new Map(definitions.map((definition) => [definition.id, definition.key]));
-    const slugById = new Map(services.map((service) => [service.id, service.slug]));
-
-    const values = await this.snapshots.latestValues(services.map((service) => service.id));
-    const bySlug = new Map<string, LatestSnapshot>(
-      services.map((service) => [service.slug, { service: service.slug, metrics: {} }]),
-    );
-
-    for (const value of values) {
-      const slug = slugById.get(value.serviceId);
-      const key = keyById.get(value.metricId);
-      if (slug === undefined || key === undefined) {
-        continue;
-      }
-      const entry = bySlug.get(slug);
-      if (entry !== undefined) {
-        entry.metrics[key] = { value: value.value, recordedAt: value.recordedAt };
-      }
-    }
-
-    return [...bySlug.values()];
-  }
-
   async history(options: HistoryOptions): Promise<MetricSeries[]> {
-    const service = await this.services.findBySlug(options.slug);
-    if (service === null) {
+    const service = await this.directory.resolve(options.slug);
+    if (service === undefined) {
       throw new NotFoundError('Service', options.slug);
     }
 

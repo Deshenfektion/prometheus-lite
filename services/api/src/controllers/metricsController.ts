@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { MAX_POINTS, metricsService } from '../services/metricsService.js';
+import { dashboardService } from '../services/dashboardService.js';
 import { parseQuery } from '../lib/validation.js';
 
 const isoDate = z
@@ -30,8 +31,14 @@ export async function listMetricDefinitions(_req: Request, res: Response): Promi
 }
 
 export async function getLatestMetrics(_req: Request, res: Response): Promise<void> {
-  const latest = await metricsService.latest();
-  res.json({ data: latest });
+  const summary = await dashboardService.summary();
+
+  res.json({
+    data: summary.services.map((service) => ({
+      service: service.slug,
+      metrics: service.metrics,
+    })),
+  });
 }
 
 const anomalyQuery = historyQuery.extend({
