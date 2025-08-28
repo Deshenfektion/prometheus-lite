@@ -8,7 +8,9 @@ class ResizeObserverStub {
   disconnect(): void {}
 }
 
-globalThis.ResizeObserver ??= ResizeObserverStub;
+if (!('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = ResizeObserverStub;
+}
 
 afterEach(() => {
   cleanup();

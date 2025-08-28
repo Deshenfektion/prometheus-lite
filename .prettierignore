@@ -3,3 +3,13 @@ node_modules/
 coverage/
 package-lock.json
 .venv/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+.pytest_cache/
+**/.pytest_cache/
+*.egg-info/
+**/*.egg-info/
+web/dist/
+services/api/dist/

@@ -8,7 +8,7 @@ import { StateMessage } from '../components/StateMessage.tsx';
 import { filterServices } from '../lib/filterServices.ts';
 import { useRefresh } from '../hooks/useRefresh.ts';
 import { useDashboard } from '../hooks/useDashboard.ts';
-import type { OverviewFilterState } from '../components/OverviewFilters.tsx';
+import type { OverviewFilterState } from '../lib/overviewFilters.ts';
 import type { HealthStatus } from '../api/types.ts';
 
 const STATUSES: HealthStatus[] = ['OK', 'WARNING', 'CRITICAL', 'UNKNOWN'];

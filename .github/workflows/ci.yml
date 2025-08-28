@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: prometheus_lite
+          POSTGRES_PASSWORD: prometheus_lite
+          POSTGRES_DB: prometheus_lite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prometheus_lite"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://prometheus_lite:prometheus_lite@localhost:5432/prometheus_lite
+      JWT_SECRET: continuous-integration-secret-value-32-chars
+      INGEST_TOKEN: continuous-integration-collector-token
+      BCRYPT_ROUNDS: '4'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck --workspace services/api
+      - run: npm run lint --workspace services/api
+      - run: npm test --workspace services/api
+      - run: npm run build --workspace services/api
+
+  web:
+    name: Dashboard
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck --workspace web
+      - run: npm run lint --workspace web
+      - run: npm test --workspace web
+      - run: npm run build --workspace web
+
+  collector:
+    name: Collector
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services/collector
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - run: pip install -e '.[dev]'
+      - run: ruff check src tests
+      - run: ruff format --check src tests
+      - run: mypy
+      - run: pytest
+
+  images:
+    name: Container images
+    runs-on: ubuntu-24.04
+    needs: [api, web, collector]
+
+    strategy:
+      matrix:
+        include:
+          - name: api
+            dockerfile: services/api/Dockerfile
+          - name: collector
+            dockerfile: services/collector/Dockerfile
+          - name: web
+            dockerfile: web/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: prometheus-lite-${{ matrix.name }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

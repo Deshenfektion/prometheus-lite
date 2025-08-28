@@ -66,9 +66,7 @@ async def test_connection_error_is_reported(
 
 
 @respx.mock
-async def test_non_json_body_is_not_parsed(
-    client: httpx.AsyncClient, target: TargetConfig
-) -> None:
+async def test_non_json_body_is_not_parsed(client: httpx.AsyncClient, target: TargetConfig) -> None:
     respx.get(PROBE_URL).mock(
         return_value=httpx.Response(200, text="ok", headers={"content-type": "text/plain"})
     )

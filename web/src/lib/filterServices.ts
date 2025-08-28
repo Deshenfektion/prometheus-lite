@@ -1,4 +1,4 @@
-import type { OverviewFilterState } from '../components/OverviewFilters.tsx';
+import type { OverviewFilterState } from './overviewFilters.ts';
 import type { DashboardService } from '../api/types.ts';
 
 export function filterServices(

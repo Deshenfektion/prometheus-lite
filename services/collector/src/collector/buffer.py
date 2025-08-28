@@ -48,9 +48,7 @@ class DiskBuffer:
         try:
             with os.fdopen(handle, "w", encoding="utf-8") as stream:
                 for snapshot in snapshots[: self.max_snapshots_per_file]:
-                    stream.write(
-                        json.dumps(snapshot.model_dump(mode="json", by_alias=True)) + "\n"
-                    )
+                    stream.write(json.dumps(snapshot.model_dump(mode="json", by_alias=True)) + "\n")
                 stream.flush()
                 os.fsync(stream.fileno())
         except OSError:
